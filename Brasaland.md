@@ -59,7 +59,19 @@ Info required:
 ### Proposition for Streamlined Recievables and Inventory management.
          - Correlate usury data from POS, Vendors, & Recievables orders to track inventory, cost fluctiation, & P&L in one robust system. -
 
-- 
+- Feed daily sales, comps, spills, training meals, mgmt meals, shifties, discounts into a central database within our API. If the POS can talk to our system great, if not have a mgmt feed the close report into our system.
+- Our database needs ingredient info from the recipe books.
+- Our database needs cost info from our vendors.
+- Our database needs a baseline of inventory requirements. (BAR)(BOH)
+- Our database needs to know which menu(s) we are running, and any specials we are promoting.
+- cross-referencing these data points, AI can create a cost breakdown for each item on the menu, less spills & comps.
+- We can use this data to generate predicted; P&L reports, inventory use, and predict vendor orders for our recievables.
+- With human oversight, discrepancies in predictive inventory use vs actual inventory loss can be used to spot employee theft of resources.
+- This system should be able to produce cost reports month over month or year over over year to predict cost trends. 'ex: quail eggs increase in price over winter, which pushes ROI on the dish in the black - we can sub this dish for another during this season to maintain profitability.'
+- System should create predictive orders for MGMT to review, edit, and send to vendors based off of our cross-referenced data points each night after service ends.
+- MGMT and International teams have realtime access to this data in a centralized, easy to navigate location from which they can make informed business decisions: 'Best sellers, highest comp'd items, highest ROI items, seasonal changes in ingredient cost, etc.' We can use this data to push promotional campaigns to our marketing and guest retention rewards systems. Additionally we have further clarity in training costs, and staff morale costs, total spills and product losses for tax liability reduction purposes.
+- This system will be capable of providing reciepts for vendor price at time of order, so mgmt can compare against the price at delivery and confirm no price increase.
+- BAR and BOH leads can use this data to encourage special development. ex: cost of squash decreases in spring - create a special that features this ingredient to capitalize on the ROI potential.
 
 
 
