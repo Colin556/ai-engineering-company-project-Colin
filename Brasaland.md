@@ -2,7 +2,7 @@ I chose Brasaland because I've worked in restaraunts for over 8 years and the ch
 
  - International, management, and small teams communications.
  - Front and back of house training manuals.
- - Recievables ands inventory management.
+ - Recievables and inventory management.
  - HR onboarding and offboarding processing.
  - Guest rewards, incentivizations, and marketing (suggestive selling/ promotion) systems.
  - Digital Recipe book with mgmt lockout copy, shared edit permission structures, access termination upon offboarding.
@@ -98,8 +98,12 @@ Info required:
 - Subscrition reward structure - I.E sub tiers get you extended happy hour, invites to chef dinners, discounts on holiday events, monthly swag etc.
 - Push notifications for seasonal marketing strategy, targeted ads during times of day, or viscinity within the restaurant.
 - QR receipt scans stores consumer data on guest's device; use data to send suggestive sales strategies customized towards guest's order history. ex: 'happy hour oysters in user data' = push notification "shuck now, not later" 1 hr from happy hour end.
-
-
+- built in order functionality, higher reward structure to order through the app to save income cut on uberEats. Track user interaction, push notification on user's habit with order queued.
+- Recruit a friend to the app w/ unique QR and get reward when they order or scan receipt.
+- Recruited friend incentivized w/ coupon w/ 3 day expiration through app. upon failure to redeem, push notice = "You shucked out." alongside photo of a poppin happy hour from the branch's recent social media posts. AI tethered.
+- AI tether Branch SM posts to app push notifications. ex; MGMT takes photo of bakery's new pastry tasting with the team and makes SM post. AI clones it and pushes it through the app.
+- MGMT overdrive to push an item that is rolling out of season, or to announce an up and coming high demand seasonal item. etc.
+- Bday rewards. MGMT Log celebrations into user profiles through openTable that connects to App data ex: Anniversary, guys/girls night, Bachelor/ette, DND group etc and send special notes, notification, etc to encourage repeat business, or let AI drive that info into engagement. (toggle on/off per user is important here in hospitality)
 
 ### Proposition for Streamlined Website/Mobile/App.
 
