@@ -33,6 +33,9 @@ I chose Brasaland because I've worked in restaraunts for over 8 years and the ch
 - Side Work Checklists (BAR)(BOH)(FOH)
 - Opening & Closing Checklist/procedures (BAR)(BOH)(FOH)
 - HR Manual & Contact
+- 'Backend' user data logged for mgmt insight & AI efficiency suggestions. ex: Colin has released his Thursday PM shift for 4 consecutive weeks - Jacob has picked up this shift 3 consecutive weeks. AI suggests scheduling Jacob for this shift - would you like to do so now? Y/N/remind me.
+- menu updates/launches can be pre-planned and comms executed accross all (or specified) branches simultaineously.
+- Time of request system w/ blackout dates (programmed by MGMT).
 
 
 ### Proposition for Streamlined HR On/OffBoard Process
@@ -59,7 +62,7 @@ Info required:
 ### Proposition for Streamlined Recievables and Inventory management.
          - Correlate usury data from POS, Vendors, & Recievables orders to track inventory, cost fluctiation, & P&L in one robust system. -
 
-- Feed daily sales, comps, spills, training meals, mgmt meals, shifties, discounts into a central database within our API. If the POS can talk to our system great, if not have a mgmt feed the close report into our system.
+- Feed daily sales, comps, spills, training meals, mgmt meals, shifties, discounts into a central database within our API. If the POS can talk to our system great, if not have a mgmt feed the close report into our system............ I need to build this as a POS system too that integrates into our API.
 - Our database needs ingredient info from the recipe books.
 - Our database needs cost info from our vendors.
 - Our database needs a baseline of inventory requirements. (BAR)(BOH)
@@ -72,6 +75,14 @@ Info required:
 - MGMT and International teams have realtime access to this data in a centralized, easy to navigate location from which they can make informed business decisions: 'Best sellers, highest comp'd items, highest ROI items, seasonal changes in ingredient cost, etc.' We can use this data to push promotional campaigns to our marketing and guest retention rewards systems. Additionally we have further clarity in training costs, and staff morale costs, total spills and product losses for tax liability reduction purposes.
 - This system will be capable of providing reciepts for vendor price at time of order, so mgmt can compare against the price at delivery and confirm no price increase.
 - BAR and BOH leads can use this data to encourage special development. ex: cost of squash decreases in spring - create a special that features this ingredient to capitalize on the ROI potential.
+- ** Build end to end vendor price database with local distributers that deliver. Compare to favorite vendor; If other distributer price is less suggest new distro. Can set a lock to confirm vendor change behind an upper mgmt approval. (gives Lucia bargaining power against her vendor w/ deliverables)
+- Push notification option for hourly foot traffic reports based on closed and open tabs, or even 'openTable lite' floor report........
+- ^ lets include OpenTable integration.
+- Online order functionality connected to App/Website/mobile/uberEats etc. orders
+- User end system functionality that tracks order history for disposable products and alerts to price fluxuations amongst favorite and competitor vendors.
+- User end push notification system for flash sale/ price drop on raw material good. (set price drop range, and/or item relevancy)
+
+
 
 
 
