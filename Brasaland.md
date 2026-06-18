@@ -36,6 +36,8 @@ I chose Brasaland because I've worked in restaraunts for over 8 years and the ch
 - 'Backend' user data logged for mgmt insight & AI efficiency suggestions. ex: Colin has released his Thursday PM shift for 4 consecutive weeks - Jacob has picked up this shift 3 consecutive weeks. AI suggests scheduling Jacob for this shift - would you like to do so now? Y/N/remind me.
 - menu updates/launches can be pre-planned and comms executed accross all (or specified) branches simultaineously.
 - Time of request system w/ blackout dates (programmed by MGMT).
+- Staff can set Availability, and shift preference.
+- Ai can read availability and preferences and generate optimal schedules.
 
 
 ### Proposition for Streamlined HR On/OffBoard Process
@@ -80,7 +82,26 @@ Info required:
 - ^ lets include OpenTable integration.
 - Online order functionality connected to App/Website/mobile/uberEats etc. orders
 - User end system functionality that tracks order history for disposable products and alerts to price fluxuations amongst favorite and competitor vendors.
-- User end push notification system for flash sale/ price drop on raw material good. (set price drop range, and/or item relevancy)
+- User end push notification system for flash sale/ price drop on raw material good. (user can set or ai optin price drop range, and/or item relevancy)
+- Impliment QR code on guest receipts to scan to download BrasApp for rewards.
+
+
+### Proposition for Streamlined Guest Acquisition & Retention.
+                                        - Create a digital rewards system that synchronizes with brand outreach -
+
+- Scrap the entire paper rewards system. If guest has old paper punch card, mgmt can take it and SHOW them a qr code to scan to convert the rewards into the app.
+- When new special is released, App sends push notification.
+- Recruit a friend reward structure.
+- link to social media reward structure.
+- positive review, sm post reward structure.
+- shitpost reward structure for the youngins.
+- Subscrition reward structure - I.E sub tiers get you extended happy hour, invites to chef dinners, discounts on holiday events, monthly swag etc.
+- Push notifications for seasonal marketing strategy, targeted ads during times of day, or viscinity within the restaurant.
+- QR receipt scans stores consumer data on guest's device; use data to send suggestive sales strategies customized towards guest's order history. ex: 'happy hour oysters in user data' = push notification "shuck now, not later" 1 hr from happy hour end.
+
+
+
+### Proposition for Streamlined Website/Mobile/App.
 
 
 
