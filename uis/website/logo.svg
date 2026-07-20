@@ -1,0 +1,27 @@
+<svg width="320" height="92" viewBox="0 0 320 92" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Brasaland logo</title>
+  <desc id="logoDesc">Flame-inspired Brasaland restaurant chain logo in ember and amber tones.</desc>
+
+  <defs>
+    <linearGradient id="emberGlow" x1="14" y1="10" x2="78" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FDBA74"/>
+      <stop offset="0.5" stop-color="#F97316"/>
+      <stop offset="1" stop-color="#9A3412"/>
+    </linearGradient>
+    <linearGradient id="steel" x1="8" y1="74" x2="84" y2="74" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A8A29E"/>
+      <stop offset="1" stop-color="#57534E"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="2" y="2" width="88" height="88" rx="20" fill="#171717" stroke="#7C2D12" stroke-width="2"/>
+
+  <path d="M46 16C53 27 55 35 55 42C55 53 46 61 36 61C27 61 20 54 20 45C20 33 29 24 39 21C37 26 37 29 39 34C40 30 42 24 46 16Z" fill="url(#emberGlow)"/>
+  <path d="M55 25C61 31 64 37 64 44C64 54 56 62 46 64C52 59 55 53 55 47C55 40 53 33 55 25Z" fill="#FBBF24" fill-opacity="0.85"/>
+
+  <rect x="13" y="71" width="64" height="6" rx="3" fill="url(#steel)"/>
+  <circle cx="79" cy="74" r="5" fill="#A8A29E"/>
+
+  <text x="104" y="52" fill="#FCD34D" font-family="Barlow Condensed, Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="2">BRASALAND</text>
+  <text x="106" y="72" fill="#D6D3D1" font-family="Source Sans 3, Arial, sans-serif" font-size="12" letter-spacing="1.5">FIRE GRILLED SINCE 2008</text>
+</svg>

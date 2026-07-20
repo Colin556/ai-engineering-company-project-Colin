@@ -16,6 +16,7 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://brasaland.com" />
+    <link rel="icon" type="image/svg+xml" href="logo-icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -52,36 +53,62 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "Restaurant",
-        "name": "Brasaland",
-        "description": "Grilled food restaurant chain in Colombia and the United States",
-        "url": "https://brasaland.com",
-        "foundingDate": "2008",
-        "servesCuisine": "Grilled food, Colombian cuisine",
-        "priceRange": "$$",
-        "address": [
+        "@graph": [
           {
-            "@type": "PostalAddress",
-            "addressCountry": "CO",
-            "addressLocality": "Medellín",
-            "addressRegion": "Antioquia"
+            "@type": "Organization",
+            "@id": "https://brasaland.com/#organization",
+            "name": "Brasaland",
+            "url": "https://brasaland.com",
+            "logo": "https://brasaland.com/logo.svg",
+            "foundingDate": "2008",
+            "sameAs": [
+              "https://instagram.com/brasaland",
+              "https://facebook.com/brasaland"
+            ],
+            "contactPoint": [
+              {
+                "@type": "ContactPoint",
+                "telephone": "+57-4-123-4567",
+                "contactType": "customer service",
+                "areaServed": "CO",
+                "availableLanguage": ["English", "Spanish"]
+              },
+              {
+                "@type": "ContactPoint",
+                "telephone": "+1-305-123-4567",
+                "contactType": "customer service",
+                "areaServed": "US",
+                "availableLanguage": ["English", "Spanish"]
+              }
+            ]
           },
           {
-            "@type": "PostalAddress",
-            "addressCountry": "US",
-            "addressLocality": "Miami",
-            "addressRegion": "FL"
+            "@type": "Restaurant",
+            "@id": "https://brasaland.com/#restaurant",
+            "name": "Brasaland",
+            "description": "Grilled food restaurant chain in Colombia and the United States",
+            "url": "https://brasaland.com",
+            "foundingDate": "2008",
+            "servesCuisine": "Grilled food, Colombian cuisine",
+            "priceRange": "$$",
+            "parentOrganization": {
+              "@id": "https://brasaland.com/#organization"
+            },
+            "address": [
+              {
+                "@type": "PostalAddress",
+                "addressCountry": "CO",
+                "addressLocality": "Medellín",
+                "addressRegion": "Antioquia"
+              },
+              {
+                "@type": "PostalAddress",
+                "addressCountry": "US",
+                "addressLocality": "Miami",
+                "addressRegion": "FL"
+              }
+            ]
           }
-        ],
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "telephone": "+57-4-123-4567",
-          "contactType": "customer service",
-          "availableLanguage": ["English"]
-        },
-        "sameAs": [
-          "https://instagram.com/brasaland",
-          "https://facebook.com/brasaland"
         ]
       }
     </script>
@@ -94,8 +121,11 @@
     >
 
     <header class="sticky top-0 z-40 border-b border-amber-900/40 bg-stone-950/95 backdrop-blur" aria-label="Main header">
-      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 lg:px-8">
-        <a href="#home" class="font-display text-3xl tracking-wide text-amber-300" aria-label="Brasaland home">Brasaland</a>
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-5">
+        <a href="#home" class="inline-flex items-center" aria-label="Brasaland home">
+          <img src="logo-icon.svg" alt="Brasaland flame icon" class="h-10 w-10 sm:hidden" />
+          <img src="logo.svg" alt="Brasaland flame grill logo" class="hidden h-10 w-auto sm:block sm:h-11 lg:h-12" />
+        </a>
         <nav aria-label="Primary navigation">
           <ul class="hidden items-center gap-6 text-sm font-semibold tracking-wide md:flex">
             <li><a href="#home" class="hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 rounded">Home</a></li>
@@ -107,11 +137,11 @@
         </nav>
         <a
           href="signup.html"
-          class="rounded-md bg-ember-500 px-4 py-2 text-sm font-bold text-white transition hover:bg-ember-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          class="rounded-md bg-ember-600 px-3 py-2 text-xs font-bold text-stone-950 transition hover:bg-ember-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:px-4 sm:text-sm"
           >Join Brasa Points</a
         >
       </div>
-      <nav class="border-t border-stone-800/70 px-6 py-2 md:hidden" aria-label="Mobile navigation">
+      <nav class="border-t border-stone-800/70 px-4 py-2 sm:px-6 md:hidden" aria-label="Mobile navigation">
         <ul class="flex flex-wrap gap-4 text-xs font-semibold uppercase tracking-wide text-stone-200">
           <li><a href="#home" class="hover:text-amber-300">Home</a></li>
           <li><a href="#locations" class="hover:text-amber-300">Locations</a></li>
@@ -127,17 +157,17 @@
         <div class="absolute inset-0 bg-gradient-to-br from-amber-900/50 via-stone-950 to-black" aria-hidden="true"></div>
         <div class="absolute -left-12 top-24 h-52 w-52 rounded-full bg-ember-500/25 blur-3xl" aria-hidden="true"></div>
         <div class="absolute -right-8 bottom-10 h-56 w-56 rounded-full bg-amber-200/10 blur-3xl" aria-hidden="true"></div>
-        <div class="relative mx-auto grid max-w-6xl gap-10 px-6 py-16 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-24">
+        <div class="relative mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:gap-10 sm:px-6 sm:py-16 md:py-20 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-24">
           <div>
             <p class="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">Since 2008</p>
-            <h1 id="hero-title" class="font-display text-5xl leading-tight text-white sm:text-6xl">The taste of the grill, in every bite</h1>
+            <h1 id="hero-title" class="font-display text-4xl leading-tight text-white sm:text-5xl lg:text-6xl">The taste of the grill, in every bite</h1>
             <p class="mt-5 max-w-xl text-lg text-stone-200">
               Since 2008 serving the best grilled meats in Colombia and the United States. 14 locations, one passion for quality and flavor.
             </p>
             <div class="mt-8 flex flex-wrap gap-4">
               <a
                 href="signup.html"
-                class="rounded-md bg-ember-500 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-ember-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                class="rounded-md bg-ember-600 px-6 py-3 text-sm font-bold uppercase tracking-wide text-stone-950 transition hover:bg-ember-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                 >Join Brasa Points</a
               >
               <a
@@ -147,22 +177,22 @@
               >
             </div>
           </div>
-          <div class="overflow-hidden rounded-2xl border border-stone-800 bg-stone-900/70 p-3 shadow-2xl">
+          <div class="overflow-hidden rounded-2xl border border-stone-800 bg-stone-900/70 p-2 shadow-2xl sm:p-3">
             <img
               src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80"
-              alt="Grilled meat platter served with vegetables in a Brasaland-style dining setting"
+              alt="A Brasaland-style grilled meat platter with roasted vegetables, highlighting the chain's signature flame-grilled menu"
               class="h-full min-h-72 w-full rounded-xl object-cover"
             />
           </div>
         </div>
       </section>
 
-      <section class="mx-auto max-w-6xl px-6 py-16 lg:px-8" aria-labelledby="story-title">
-        <div class="grid gap-10 md:grid-cols-2 md:items-center">
+      <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8" aria-labelledby="story-title">
+        <div class="grid gap-8 sm:gap-10 md:grid-cols-2 md:items-center">
           <div class="overflow-hidden rounded-2xl border border-stone-800">
             <img
               src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80"
-              alt="Restaurant grill with chefs preparing food and flames"
+              alt="Chefs preparing food over an open grill in a busy Brasaland kitchen, representing speed and consistent quality"
               class="h-full w-full object-cover"
             />
           </div>
@@ -175,9 +205,9 @@
         </div>
       </section>
 
-      <section id="menu" class="bg-stone-900/60 py-16" aria-labelledby="unique-title">
-        <div class="mx-auto max-w-6xl px-6 lg:px-8">
-          <h2 id="unique-title" class="text-center font-display text-4xl text-amber-200">What Makes Us Unique</h2>
+      <section id="menu" class="bg-stone-900/60 py-12 sm:py-16" aria-labelledby="unique-title">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 id="unique-title" class="text-center font-display text-3xl text-amber-200 sm:text-4xl">What Makes Us Unique</h2>
           <div class="mt-10 grid gap-6 md:grid-cols-3">
             <article class="rounded-xl border border-stone-800 bg-stone-900 p-6 shadow-lg">
               <h3 class="font-display text-2xl text-white">Consistent Quality</h3>
@@ -204,8 +234,8 @@
         </div>
       </section>
 
-      <section id="locations" class="mx-auto max-w-6xl px-6 py-16 lg:px-8" aria-labelledby="locations-title">
-        <h2 id="locations-title" class="text-center font-display text-4xl text-amber-200">Our Locations</h2>
+      <section id="locations" class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8" aria-labelledby="locations-title">
+        <h2 id="locations-title" class="text-center font-display text-3xl text-amber-200 sm:text-4xl">Our Locations</h2>
         <div class="mt-10 grid gap-6 md:grid-cols-2">
           <article class="rounded-xl border border-stone-800 bg-stone-900/70 p-7">
             <h3 class="font-display text-3xl text-white">Colombia</h3>
@@ -220,9 +250,9 @@
         </div>
       </section>
 
-      <section class="bg-gradient-to-r from-ember-800 to-amber-700 py-16" aria-labelledby="points-title">
-        <div class="mx-auto max-w-6xl px-6 lg:px-8">
-          <h2 id="points-title" class="font-display text-4xl text-white">Earn points with every visit</h2>
+      <section class="bg-gradient-to-r from-ember-800 to-amber-700 py-12 sm:py-16" aria-labelledby="points-title">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 id="points-title" class="font-display text-3xl text-white sm:text-4xl">Earn points with every visit</h2>
           <ul class="mt-6 grid gap-4 text-lg text-amber-50 md:grid-cols-2">
             <li>Accumulate 1 point for every $10,000 COP or $5 USD</li>
             <li>Redeem your points for discounts and free dishes</li>
@@ -234,14 +264,14 @@
           </p>
           <a
             href="signup.html"
-            class="mt-8 inline-block rounded-md bg-white px-6 py-3 text-sm font-bold uppercase tracking-wide text-ember-800 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            class="mt-8 inline-block rounded-md bg-white px-6 py-3 text-sm font-bold uppercase tracking-wide text-amber-950 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >Register for Brasa Points</a
           >
         </div>
       </section>
 
-      <section id="contact" class="mx-auto max-w-6xl px-6 py-16 lg:px-8" aria-labelledby="contact-title">
-        <h2 id="contact-title" class="font-display text-4xl text-amber-200">Contact</h2>
+      <section id="contact" class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8" aria-labelledby="contact-title">
+        <h2 id="contact-title" class="font-display text-3xl text-amber-200 sm:text-4xl">Contact</h2>
         <div class="mt-7 grid gap-4 text-lg text-stone-200">
           <p>
             Email:
@@ -254,8 +284,16 @@
     </main>
 
     <footer class="border-t border-stone-800 bg-black/40">
-      <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 px-6 py-6 text-sm text-stone-300 md:flex-row md:items-center lg:px-8">
+      <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-4 py-6 text-sm text-stone-300 sm:px-6 md:flex-row md:items-center lg:px-8">
         <p>© 2025 Brasaland. All rights reserved.</p>
+          <div class="text-sm text-stone-300" aria-label="Footer contact information">
+            <p>
+              Email:
+              <a href="mailto:hello@brasaland.com" class="text-amber-300 underline decoration-amber-600 underline-offset-4">hello@brasaland.com</a>
+            </p>
+            <p>Colombia: +57 4 123 4567</p>
+            <p>Florida: +1 305 123 4567</p>
+          </div>
         <div class="flex gap-4" aria-label="Social media links">
           <a href="https://instagram.com/brasaland" class="hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 rounded">Instagram</a>
           <a href="https://facebook.com/brasaland" class="hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 rounded">Facebook</a>
