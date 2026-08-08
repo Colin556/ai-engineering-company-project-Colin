@@ -1,0 +1,24 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="iconTitle iconDesc">
+  <title id="iconTitle">Brasaland icon</title>
+  <desc id="iconDesc">Flame and grill icon for Brasaland branding.</desc>
+
+  <defs>
+    <linearGradient id="emberGlowIcon" x1="14" y1="10" x2="78" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FDBA74"/>
+      <stop offset="0.5" stop-color="#F97316"/>
+      <stop offset="1" stop-color="#9A3412"/>
+    </linearGradient>
+    <linearGradient id="steelIcon" x1="8" y1="74" x2="84" y2="74" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A8A29E"/>
+      <stop offset="1" stop-color="#57534E"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="2" y="2" width="92" height="92" rx="22" fill="#171717" stroke="#7C2D12" stroke-width="2"/>
+
+  <path d="M47 17C54 28 56 36 56 43C56 54 47 62 37 62C28 62 21 55 21 46C21 34 30 25 40 22C38 27 38 30 40 35C41 31 43 25 47 17Z" fill="url(#emberGlowIcon)"/>
+  <path d="M56 26C62 32 65 38 65 45C65 55 57 63 47 65C53 60 56 54 56 48C56 41 54 34 56 26Z" fill="#FBBF24" fill-opacity="0.85"/>
+
+  <rect x="14" y="72" width="66" height="6" rx="3" fill="url(#steelIcon)"/>
+  <circle cx="82" cy="75" r="5" fill="#A8A29E"/>
+</svg>

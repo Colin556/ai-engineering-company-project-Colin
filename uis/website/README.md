@@ -5,6 +5,10 @@ Two-page, Tailwind CSS website for Brasaland:
 - `index.html`: Landing page with brand presentation, sections requested in `CONTEXT.md`, and Schema.org JSON-LD.
 - `signup.html`: Brasa Points registration form with dynamic fields and full JavaScript validation.
 - `app.js`: Form dependency logic and validation rules.
+- `src/types.ts`: Shared TypeScript aliases for milestone entities.
+- `src/utils/collections.ts`: Required collection filtering and sorting helpers.
+- `src/utils/search.ts`: Required linear and binary search helpers.
+- `src/utils/transformations.ts`: Required financial transformation helpers.
 
 ## Run locally
 
