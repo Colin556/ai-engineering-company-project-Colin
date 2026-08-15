@@ -25,6 +25,14 @@ type SelectOption = {
   label: string;
 };
 
+type ProductLossCategory =
+  | "Spill"
+  | "Comp"
+  | "RnD"
+  | "Family Meal"
+  | "Staff Discount"
+  | "Rewards Discount";
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -105,6 +113,47 @@ function getSortedDateBuckets(scopedSales: typeof sales): string[] {
   return Array.from(
     new Set(scopedSales.map((sale) => sale.timestamp.toISOString().slice(0, 10)))
   ).sort((left, right) => left.localeCompare(right));
+}
+
+const productLossCategories: ProductLossCategory[] = [
+  "Spill",
+  "Comp",
+  "RnD",
+  "Family Meal",
+  "Staff Discount",
+  "Rewards Discount"
+];
+
+function mapWasteReasonToProductLossCategory(reason: string): ProductLossCategory {
+  switch (reason) {
+    case "Damage":
+    case "Cooking error":
+      return "Spill";
+    case "Customer return":
+      return "Comp";
+    case "Expired":
+      return "RnD";
+    case "Other":
+      return "Family Meal";
+    default:
+      return "RnD";
+  }
+}
+
+function getProductLossRows(scopedWasteRecords: typeof wasteRecords): Array<{ label: ProductLossCategory; count: number }> {
+  const counts = new Map<ProductLossCategory, number>(
+    productLossCategories.map((category) => [category, 0])
+  );
+
+  scopedWasteRecords.forEach((wasteRecord) => {
+    const category = mapWasteReasonToProductLossCategory(wasteRecord.reason);
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  });
+
+  return productLossCategories.map((category) => ({
+    label: category,
+    count: counts.get(category) ?? 0
+  }));
 }
 
 function renderSandbox(): void {
@@ -288,7 +337,7 @@ function renderSandbox(): void {
 
       <section class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
         <div class="flex items-end justify-between gap-4">
-          <h3 class="font-display text-2xl text-white">Waste By Reason</h3>
+          <h3 class="font-display text-2xl text-white">Product Loss</h3>
           <label class="text-xs text-stone-400">
             Location
             <select id="waste-location-select" class="ml-2 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-200">
@@ -541,30 +590,24 @@ function renderSandbox(): void {
     const scopedWasteRecords = selectedLocationId === "all"
       ? wasteRecords
       : wasteRecords.filter((waste) => waste.locationId === selectedLocationId);
-    const wasteRows = formatCountMap(
-      generateOperationsReport({
-        locations: restaurantLocations,
-        menuItems,
-        sales,
-        wasteRecords: scopedWasteRecords,
-        exchangeRates,
-        currency: "USD"
-      }).wasteByReason
-    ).map((row) => ({ label: String(row.label), count: row.count }));
+    const wasteRows = getProductLossRows(scopedWasteRecords).map((row) => ({
+      label: String(row.label),
+      count: row.count
+    }));
 
     const wasteList = document.getElementById("waste-list");
     const wasteTrend = document.getElementById("waste-trend");
     if (wasteList) {
       wasteList.innerHTML = renderRows(
         wasteRows,
-        "No waste records for this location filter."
+        "No product loss records for this location filter."
       );
     }
 
     if (wasteTrend) {
       wasteTrend.innerHTML = renderMiniBarChart(
         wasteRows.map((row) => ({ label: row.label, value: row.count })),
-        "No waste-reason trend for this filter.",
+        "No product-loss trend for this filter.",
         (value) => `${value}`
       );
     }
