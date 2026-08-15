@@ -487,6 +487,46 @@ export const sales: SaleTransaction[] = [
     paymentMethod: "Cash",
     timestamp: new Date("2026-08-08T12:05:00Z"),
     waiterName: "Lucia Herrera"
+  },
+  {
+    id: "TXN-2026-1007",
+    locationId: "LOC-MIAMI-01",
+    itemId: "menu-churrasco",
+    quantity: 9,
+    totalPrice: { USD: 216, COP: 874800 },
+    paymentMethod: "Digital wallet",
+    timestamp: new Date("2026-08-08T19:22:00Z"),
+    waiterName: "Jacob Reed"
+  },
+  {
+    id: "TXN-2026-1008",
+    locationId: "LOC-BOGOTA-01",
+    itemId: "menu-arepas",
+    quantity: 15,
+    totalPrice: { USD: 105, COP: 425250 },
+    paymentMethod: "Debit card",
+    timestamp: new Date("2026-08-09T13:05:00Z"),
+    waiterName: "Camila Ospina"
+  },
+  {
+    id: "TXN-2026-1009",
+    locationId: "LOC-MEDELLIN-01",
+    itemId: "menu-family-combo",
+    quantity: 5,
+    totalPrice: { USD: 190, COP: 769500 },
+    paymentMethod: "Credit card",
+    timestamp: new Date("2026-08-09T20:12:00Z"),
+    waiterName: "Lucia Herrera"
+  },
+  {
+    id: "TXN-2026-1010",
+    locationId: "LOC-ORLANDO-01",
+    itemId: "menu-guava-soda",
+    quantity: 10,
+    totalPrice: { USD: 40, COP: 162000 },
+    paymentMethod: "Cash",
+    timestamp: new Date("2026-08-10T17:40:00Z"),
+    waiterName: "Sofia Rojas"
   }
 ];
 
@@ -525,5 +565,25 @@ export const wasteRecords: WasteRecord[] = [
     cost: { USD: 8.4, COP: 34020 },
     timestamp: new Date("2026-08-08T10:10:00Z"),
     reportedBy: "Camila Ospina"
+  },
+  {
+    id: "WASTE-2026-004",
+    locationId: "LOC-ORLANDO-01",
+    itemId: "menu-family-combo",
+    quantity: 1,
+    reason: "Customer return",
+    cost: { USD: 15.6, COP: 63180 },
+    timestamp: new Date("2026-08-09T21:03:00Z"),
+    reportedBy: "Sofia Rojas"
+  },
+  {
+    id: "WASTE-2026-005",
+    locationId: "LOC-MEDELLIN-01",
+    itemId: "menu-arepas",
+    quantity: 2,
+    reason: "Other",
+    cost: { USD: 4.2, COP: 17010 },
+    timestamp: new Date("2026-08-10T11:22:00Z"),
+    reportedBy: "Lucia Herrera"
   }
 ];
