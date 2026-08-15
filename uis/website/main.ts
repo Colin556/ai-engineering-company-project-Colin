@@ -1,6 +1,7 @@
 import {
   calculateFinancialMetrics,
   calculateLocationPerformanceScores,
+  convertCurrency,
   calculateWasteCostTotal,
   filterSalesByDateRange,
   filterSalesByLocation,
@@ -33,7 +34,7 @@ type ProductLossCategory =
   | "Staff Discount"
   | "Rewards Discount";
 
-function formatCurrency(amount: number): string {
+function formatUsd(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -42,7 +43,15 @@ function formatCurrency(amount: number): string {
 }
 
 function formatCop(amount: number): string {
-  return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat("es-CO", {
+    style: "currency",
+    currency: "COP",
+    maximumFractionDigits: 0
+  }).format(amount);
+}
+
+function formatMoneyPair(usdAmount: number, copAmount: number): string {
+  return `${formatUsd(usdAmount)} / ${formatCop(copAmount)}`;
 }
 
 function createOptionsHtml(options: SelectOption[]): string {
@@ -72,9 +81,9 @@ function renderRows(
 }
 
 function renderMiniBarChart(
-  rows: Array<{ label: string; value: number }>,
+  rows: Array<{ label: string; value: number; secondaryValue?: number }>,
   emptyMessage: string,
-  valueFormatter: (value: number) => string
+  valueFormatter: (row: { label: string; value: number; secondaryValue?: number }) => string
 ): string {
   if (rows.length === 0) {
     return `<p class="text-xs text-stone-400">${emptyMessage}</p>`;
@@ -100,7 +109,7 @@ function renderMiniBarChart(
             <div class="-mt-1 grid grid-cols-[72px_1fr_auto] items-center gap-2 text-[11px]">
               <span></span>
               <span></span>
-              <span class="text-stone-500">${valueFormatter(row.value)}</span>
+              <span class="text-stone-500">${valueFormatter(row)}</span>
             </div>
           `;
         })
@@ -277,7 +286,7 @@ function renderSandbox(): void {
     <div class="grid gap-5 lg:grid-cols-3">
       <article class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
         <div class="flex items-end justify-between gap-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">Revenue (USD)</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">Revenue (USD / COP)</p>
           <label class="text-xs text-stone-400">
             Location
             <select id="revenue-location-select" class="ml-2 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-200">
@@ -285,14 +294,14 @@ function renderSandbox(): void {
             </select>
           </label>
         </div>
-        <p id="revenue-value" class="mt-3 font-display text-3xl text-white">${formatCurrency(reportUsd.totals.revenue)}</p>
+        <p id="revenue-value" class="mt-3 font-display text-3xl text-white">${formatMoneyPair(reportUsd.totals.revenue, reportCop.totals.revenue)}</p>
         <p id="revenue-detail" class="mt-2 text-sm text-stone-300"></p>
         <div id="revenue-trend" class="mt-4"></div>
       </article>
 
       <article class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
         <div class="flex items-end justify-between gap-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">Margin (COP)</p>
+          <p class="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">Margin (USD / COP)</p>
           <label class="text-xs text-stone-400">
             Product
             <select id="margin-product-select" class="ml-2 rounded-md border border-stone-700 bg-stone-950 px-2 py-1 text-xs text-stone-200">
@@ -300,7 +309,7 @@ function renderSandbox(): void {
             </select>
           </label>
         </div>
-        <p id="margin-value" class="mt-3 font-display text-3xl text-white">${formatCop(reportCop.totals.margin)}</p>
+        <p id="margin-value" class="mt-3 font-display text-3xl text-white">${formatMoneyPair(reportUsd.totals.margin, reportCop.totals.margin)}</p>
         <p id="margin-detail" class="mt-2 text-sm text-stone-300"></p>
         <div id="margin-trend" class="mt-4"></div>
       </article>
@@ -445,15 +454,10 @@ function renderSandbox(): void {
     const scopedSales = selectedLocationId === "all"
       ? sales
       : filterSalesByLocation(sales, selectedLocationId);
-    const scopedReport = generateOperationsReport({
-      locations: restaurantLocations,
-      menuItems,
-      sales: scopedSales,
-      wasteRecords,
-      exchangeRates,
-      currency: "USD"
-    });
-    const averageTicket = scopedSales.length === 0 ? 0 : scopedReport.totals.revenue / scopedSales.length;
+    const scopedRevenueUsd = scopedSales.reduce((sum, sale) => sum + sale.totalPrice.USD, 0);
+    const scopedRevenueCop = scopedSales.reduce((sum, sale) => sum + sale.totalPrice.COP, 0);
+    const averageTicketUsd = scopedSales.length === 0 ? 0 : scopedRevenueUsd / scopedSales.length;
+    const averageTicketCop = scopedSales.length === 0 ? 0 : scopedRevenueCop / scopedSales.length;
     const selectedLabel = selectedLocationId === "all"
       ? "all locations"
       : locationNameById.get(selectedLocationId) ?? selectedLocationId;
@@ -463,24 +467,27 @@ function renderSandbox(): void {
     const revenueTrend = document.getElementById("revenue-trend");
 
     if (revenueValue && revenueDetail) {
-      revenueValue.textContent = formatCurrency(scopedReport.totals.revenue);
-      revenueDetail.textContent = `${scopedSales.length} transactions in ${selectedLabel}. Avg ticket ${formatCurrency(averageTicket)}.`;
+      revenueValue.textContent = formatMoneyPair(scopedRevenueUsd, scopedRevenueCop);
+      revenueDetail.textContent = `${scopedSales.length} transactions in ${selectedLabel}. Avg ticket ${formatMoneyPair(averageTicketUsd, averageTicketCop)}.`;
     }
 
     if (revenueTrend) {
       const buckets = getSortedDateBuckets(scopedSales);
       const trendRows = buckets.map((date) => {
-        const dailyRevenue = scopedSales
+        const dailyRevenueUsd = scopedSales
           .filter((sale) => sale.timestamp.toISOString().slice(0, 10) === date)
           .reduce((sum, sale) => sum + sale.totalPrice.USD, 0);
+        const dailyRevenueCop = scopedSales
+          .filter((sale) => sale.timestamp.toISOString().slice(0, 10) === date)
+          .reduce((sum, sale) => sum + sale.totalPrice.COP, 0);
 
-        return { label: date.slice(5), value: dailyRevenue };
+        return { label: date.slice(5), value: dailyRevenueUsd, secondaryValue: dailyRevenueCop };
       });
 
       revenueTrend.innerHTML = renderMiniBarChart(
         trendRows,
         "No daily revenue trend for this filter.",
-        (value) => `$${value.toFixed(0)}`
+        (row) => formatMoneyPair(row.value, row.secondaryValue ?? 0)
       );
     }
   };
@@ -490,7 +497,13 @@ function renderSandbox(): void {
     const scopedSales = selectedProductId === "all"
       ? sales
       : filterSalesByProduct(sales, selectedProductId);
-    const scopedMetrics = calculateFinancialMetrics(
+    const scopedMetricsUsd = calculateFinancialMetrics(
+      scopedSales,
+      menuItems,
+      "USD",
+      exchangeRates
+    );
+    const scopedMetricsCop = calculateFinancialMetrics(
       scopedSales,
       menuItems,
       "COP",
@@ -506,8 +519,8 @@ function renderSandbox(): void {
     const marginTrend = document.getElementById("margin-trend");
 
     if (marginValue && marginDetail) {
-      marginValue.textContent = formatCop(scopedMetrics.margin);
-      marginDetail.textContent = `${unitsSold} units sold for ${selectedLabel}. Margin ${scopedMetrics.marginPercentage.toFixed(1)}%.`;
+      marginValue.textContent = formatMoneyPair(scopedMetricsUsd.margin, scopedMetricsCop.margin);
+      marginDetail.textContent = `${unitsSold} units sold for ${selectedLabel}. Margin ${scopedMetricsUsd.marginPercentage.toFixed(1)}%.`;
     }
 
     if (marginTrend) {
@@ -516,20 +529,26 @@ function renderSandbox(): void {
         const dailySales = scopedSales.filter(
           (sale) => sale.timestamp.toISOString().slice(0, 10) === date
         );
-        const dailyMargin = calculateFinancialMetrics(
+        const dailyMarginUsd = calculateFinancialMetrics(
+          dailySales,
+          menuItems,
+          "USD",
+          exchangeRates
+        ).margin;
+        const dailyMarginCop = calculateFinancialMetrics(
           dailySales,
           menuItems,
           "COP",
           exchangeRates
         ).margin;
 
-        return { label: date.slice(5), value: dailyMargin };
+        return { label: date.slice(5), value: dailyMarginUsd, secondaryValue: dailyMarginCop };
       });
 
       marginTrend.innerHTML = renderMiniBarChart(
         trendRows,
         "No daily margin trend for this filter.",
-        (value) => formatCop(value)
+        (row) => formatMoneyPair(row.value, row.secondaryValue ?? 0)
       );
     }
   };
@@ -580,7 +599,7 @@ function renderSandbox(): void {
       paymentTrend.innerHTML = renderMiniBarChart(
         paymentRows.map((row) => ({ label: row.label, value: row.count })),
         "No payment-method distribution for this filter.",
-        (value) => `${value}`
+        (row) => `${row.value}`
       );
     }
   };
@@ -608,7 +627,7 @@ function renderSandbox(): void {
       wasteTrend.innerHTML = renderMiniBarChart(
         wasteRows.map((row) => ({ label: row.label, value: row.count })),
         "No product-loss trend for this filter.",
-        (value) => `${value}`
+        (row) => `${row.value}`
       );
     }
   };
@@ -639,7 +658,7 @@ function renderSandbox(): void {
       performanceTrend.innerHTML = renderMiniBarChart(
         scopedScores.map((row) => ({ label: row.label.slice(0, 10), value: row.count })),
         "No performance comparison for this filter.",
-        (value) => `${value}`
+        (row) => `${row.value}`
       );
     }
   };
@@ -656,8 +675,7 @@ function renderSandbox(): void {
     if (snapshotList) {
       snapshotList.innerHTML = `
         <li>Total waste records: <span class="font-semibold text-amber-200">${scopedWasteRecords.length}</span></li>
-        <li>Total waste cost (USD): <span class="font-semibold text-amber-200">${formatCurrency(scopedWasteCostUsd)}</span></li>
-        <li>Total waste cost (COP): <span class="font-semibold text-amber-200">${formatCop(scopedWasteCostCop)}</span></li>
+        <li>Total waste cost: <span class="font-semibold text-amber-200">${formatMoneyPair(scopedWasteCostUsd, scopedWasteCostCop)}</span></li>
       `;
     }
   };
@@ -682,7 +700,9 @@ function renderSandbox(): void {
       });
     }
 
-    const scopedRevenue = filteredSales.reduce((total, sale) => total + sale.totalPrice.USD, 0);
+    const scopedRevenueUsd = filteredSales.reduce((total, sale) => total + sale.totalPrice.USD, 0);
+    const scopedRevenueCopFromData = filteredSales.reduce((total, sale) => total + sale.totalPrice.COP, 0);
+    const scopedRevenueCop = scopedRevenueCopFromData || convertCurrency(scopedRevenueUsd, "USD", "COP", exchangeRates);
     const scopedUnits = filteredSales.reduce((total, sale) => total + sale.quantity, 0);
 
     const checksDetails = document.getElementById("checks-details");
@@ -698,8 +718,8 @@ function renderSandbox(): void {
           <dd class="text-right text-amber-200">${scopedUnits}</dd>
         </div>
         <div class="flex items-start justify-between gap-4">
-          <dt>Total revenue (USD)</dt>
-          <dd class="text-right text-amber-200">${formatCurrency(scopedRevenue)}</dd>
+          <dt>Total revenue (USD / COP)</dt>
+          <dd class="text-right text-amber-200">${formatMoneyPair(scopedRevenueUsd, scopedRevenueCop)}</dd>
         </div>
       `;
     }
@@ -717,7 +737,7 @@ function renderSandbox(): void {
       checksTrend.innerHTML = renderMiniBarChart(
         trendRows,
         "No transaction-volume trend for this filter.",
-        (value) => `${value}`
+        (row) => `${row.value}`
       );
     }
   };
