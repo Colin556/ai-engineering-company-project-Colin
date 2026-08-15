@@ -63,6 +63,50 @@ function renderRows(
     .join("");
 }
 
+function renderMiniBarChart(
+  rows: Array<{ label: string; value: number }>,
+  emptyMessage: string,
+  valueFormatter: (value: number) => string
+): string {
+  if (rows.length === 0) {
+    return `<p class="text-xs text-stone-400">${emptyMessage}</p>`;
+  }
+
+  const totalValue = rows.reduce((sum, row) => sum + row.value, 0);
+
+  return `
+    <div class="space-y-2" role="img" aria-label="Mini chart">
+      ${rows
+        .map((row) => {
+          const percentage = totalValue === 0 ? 0 : (row.value / totalValue) * 100;
+          const percentageLabel = `${percentage.toFixed(1)}%`;
+
+          return `
+            <div class="grid grid-cols-[72px_1fr_auto] items-center gap-2 text-xs">
+              <span class="text-stone-400">${row.label}</span>
+              <div class="h-2 rounded-full bg-stone-800">
+                <div class="h-2 rounded-full bg-amber-400/80" style="width: ${percentage}%;"></div>
+              </div>
+              <span class="text-amber-200">${percentageLabel}</span>
+            </div>
+            <div class="-mt-1 grid grid-cols-[72px_1fr_auto] items-center gap-2 text-[11px]">
+              <span></span>
+              <span></span>
+              <span class="text-stone-500">${valueFormatter(row.value)}</span>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function getSortedDateBuckets(scopedSales: typeof sales): string[] {
+  return Array.from(
+    new Set(scopedSales.map((sale) => sale.timestamp.toISOString().slice(0, 10)))
+  ).sort((left, right) => left.localeCompare(right));
+}
+
 function renderSandbox(): void {
   const sandbox = document.getElementById("operations-sandbox");
 
@@ -194,6 +238,7 @@ function renderSandbox(): void {
         </div>
         <p id="revenue-value" class="mt-3 font-display text-3xl text-white">${formatCurrency(reportUsd.totals.revenue)}</p>
         <p id="revenue-detail" class="mt-2 text-sm text-stone-300"></p>
+        <div id="revenue-trend" class="mt-4"></div>
       </article>
 
       <article class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
@@ -208,6 +253,7 @@ function renderSandbox(): void {
         </div>
         <p id="margin-value" class="mt-3 font-display text-3xl text-white">${formatCop(reportCop.totals.margin)}</p>
         <p id="margin-detail" class="mt-2 text-sm text-stone-300"></p>
+        <div id="margin-trend" class="mt-4"></div>
       </article>
 
       <article class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
@@ -237,6 +283,7 @@ function renderSandbox(): void {
           </label>
         </div>
         <ul id="payment-list" class="mt-4"></ul>
+        <div id="payment-trend" class="mt-4"></div>
       </section>
 
       <section class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
@@ -250,6 +297,7 @@ function renderSandbox(): void {
           </label>
         </div>
         <ul id="waste-list" class="mt-4"></ul>
+        <div id="waste-trend" class="mt-4"></div>
       </section>
     </div>
 
@@ -265,6 +313,7 @@ function renderSandbox(): void {
           </label>
         </div>
         <ul id="performance-list" class="mt-4"></ul>
+        <div id="performance-trend" class="mt-4"></div>
       </section>
 
       <section class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
@@ -303,6 +352,7 @@ function renderSandbox(): void {
           </label>
         </div>
         <dl id="checks-details" class="mt-4 space-y-3 text-sm text-stone-200"></dl>
+        <div id="checks-trend" class="mt-4"></div>
       </section>
 
       <section class="rounded-xl border border-stone-700 bg-stone-900/80 p-5 shadow-lg">
@@ -361,10 +411,28 @@ function renderSandbox(): void {
 
     const revenueValue = document.getElementById("revenue-value");
     const revenueDetail = document.getElementById("revenue-detail");
+    const revenueTrend = document.getElementById("revenue-trend");
 
     if (revenueValue && revenueDetail) {
       revenueValue.textContent = formatCurrency(scopedReport.totals.revenue);
       revenueDetail.textContent = `${scopedSales.length} transactions in ${selectedLabel}. Avg ticket ${formatCurrency(averageTicket)}.`;
+    }
+
+    if (revenueTrend) {
+      const buckets = getSortedDateBuckets(scopedSales);
+      const trendRows = buckets.map((date) => {
+        const dailyRevenue = scopedSales
+          .filter((sale) => sale.timestamp.toISOString().slice(0, 10) === date)
+          .reduce((sum, sale) => sum + sale.totalPrice.USD, 0);
+
+        return { label: date.slice(5), value: dailyRevenue };
+      });
+
+      revenueTrend.innerHTML = renderMiniBarChart(
+        trendRows,
+        "No daily revenue trend for this filter.",
+        (value) => `$${value.toFixed(0)}`
+      );
     }
   };
 
@@ -386,10 +454,34 @@ function renderSandbox(): void {
 
     const marginValue = document.getElementById("margin-value");
     const marginDetail = document.getElementById("margin-detail");
+    const marginTrend = document.getElementById("margin-trend");
 
     if (marginValue && marginDetail) {
       marginValue.textContent = formatCop(scopedMetrics.margin);
       marginDetail.textContent = `${unitsSold} units sold for ${selectedLabel}. Margin ${scopedMetrics.marginPercentage.toFixed(1)}%.`;
+    }
+
+    if (marginTrend) {
+      const buckets = getSortedDateBuckets(scopedSales);
+      const trendRows = buckets.map((date) => {
+        const dailySales = scopedSales.filter(
+          (sale) => sale.timestamp.toISOString().slice(0, 10) === date
+        );
+        const dailyMargin = calculateFinancialMetrics(
+          dailySales,
+          menuItems,
+          "COP",
+          exchangeRates
+        ).margin;
+
+        return { label: date.slice(5), value: dailyMargin };
+      });
+
+      marginTrend.innerHTML = renderMiniBarChart(
+        trendRows,
+        "No daily margin trend for this filter.",
+        (value) => formatCop(value)
+      );
     }
   };
 
@@ -427,10 +519,19 @@ function renderSandbox(): void {
     ).map((row) => ({ label: String(row.label), count: row.count }));
 
     const paymentList = document.getElementById("payment-list");
+    const paymentTrend = document.getElementById("payment-trend");
     if (paymentList) {
       paymentList.innerHTML = renderRows(
         paymentRows,
         "No sales for this location filter."
+      );
+    }
+
+    if (paymentTrend) {
+      paymentTrend.innerHTML = renderMiniBarChart(
+        paymentRows.map((row) => ({ label: row.label, value: row.count })),
+        "No payment-method distribution for this filter.",
+        (value) => `${value}`
       );
     }
   };
@@ -452,10 +553,19 @@ function renderSandbox(): void {
     ).map((row) => ({ label: String(row.label), count: row.count }));
 
     const wasteList = document.getElementById("waste-list");
+    const wasteTrend = document.getElementById("waste-trend");
     if (wasteList) {
       wasteList.innerHTML = renderRows(
         wasteRows,
         "No waste records for this location filter."
+      );
+    }
+
+    if (wasteTrend) {
+      wasteTrend.innerHTML = renderMiniBarChart(
+        wasteRows.map((row) => ({ label: row.label, value: row.count })),
+        "No waste-reason trend for this filter.",
+        (value) => `${value}`
       );
     }
   };
@@ -474,10 +584,19 @@ function renderSandbox(): void {
     }).map((score) => ({ label: score.locationName, count: score.score }));
 
     const performanceList = document.getElementById("performance-list");
+    const performanceTrend = document.getElementById("performance-trend");
     if (performanceList) {
       performanceList.innerHTML = renderRows(
         scopedScores,
         "No locations available for this market filter."
+      );
+    }
+
+    if (performanceTrend) {
+      performanceTrend.innerHTML = renderMiniBarChart(
+        scopedScores.map((row) => ({ label: row.label.slice(0, 10), value: row.count })),
+        "No performance comparison for this filter.",
+        (value) => `${value}`
       );
     }
   };
@@ -524,6 +643,7 @@ function renderSandbox(): void {
     const scopedUnits = filteredSales.reduce((total, sale) => total + sale.quantity, 0);
 
     const checksDetails = document.getElementById("checks-details");
+    const checksTrend = document.getElementById("checks-trend");
     if (checksDetails) {
       checksDetails.innerHTML = `
         <div class="flex items-start justify-between gap-4">
@@ -539,6 +659,23 @@ function renderSandbox(): void {
           <dd class="text-right text-amber-200">${formatCurrency(scopedRevenue)}</dd>
         </div>
       `;
+    }
+
+    if (checksTrend) {
+      const buckets = getSortedDateBuckets(filteredSales);
+      const trendRows = buckets.map((date) => {
+        const txCount = filteredSales.filter(
+          (sale) => sale.timestamp.toISOString().slice(0, 10) === date
+        ).length;
+
+        return { label: date.slice(5), value: txCount };
+      });
+
+      checksTrend.innerHTML = renderMiniBarChart(
+        trendRows,
+        "No transaction-volume trend for this filter.",
+        (value) => `${value}`
+      );
     }
   };
 
