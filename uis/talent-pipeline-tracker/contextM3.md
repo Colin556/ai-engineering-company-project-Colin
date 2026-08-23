@@ -1,35 +1,17 @@
 You are part of the Brasaland Digital team, the internal technology unit of Brasaland, a grilled food restaurant chain with 14 locations in Colombia and Florida. Your job is to build the tools that operational teams will use every day.
 
-The assignment
-Ashley Turner, People Manager, has sent the following email with Nicolás Park, CTO, on copy:
 
-To: Nicolás Park (CTO) CC: Brasaland Digital Team Subject: URGENT — We need the candidate management tool this week
 
-Nicolás,
-
-I'm writing to you directly because we can no longer manage the Executive Assistant selection process in a Google Sheet. We have over a hundred applications and three people editing the same file at the same time. This morning we lost the data of two candidates due to a save conflict.
-
-I understand the backend is ready. I need someone from the team to build the frontend this week — this cannot wait any longer.
-
-What I need the tool to do:
+Build a frontend tool that does the following:
 
 Show all candidates at a glance: name, position, status, and stage.
 Filter by status and stage, and search by name or email without reloading the page.
 Open a candidate's detail and update their status or stage from there.
 Add internal notes after each call or interview, and delete them when they're no longer needed.
 Register candidates who apply through other channels and correct data when it comes in wrong.
-Thank you for escalating this.
 
-Ashley
-
-Context of the active search
-Field	Value
-Position	Executive Assistant
-Company	Brasaland
-Location	Corporate headquarters, Medellín
-Profile	Executive support experience, calendar and travel management, professional English
 API and data
-The mock API is centrally deployed and shared across all company contexts in the course. Fields, values, and structure are as defined in the backend technical specification. No adaptation is required.
+The mock API is centrally deployed and shared across all company contexts in the course. Fields, values, and structure are as defined in the backend technical specification. No adaptation is required. it can be found under /ui/talent-pipeline-tracker/.env.local
 
 status values
 API value	UI label
@@ -50,3 +32,8 @@ Specific acceptance criteria
 Status and stage fields show human-readable labels, never raw API values.
 Notes are visible only within the candidate detail view.
 The registration form includes all fields required by the API.
+
+⚠️ IMPORTANT: The terminology, labels, and framing visible in your UI must reflect your company's context as described in your CONTEXT.md. For example, if your company is TrackFlow, the interface should feel like an internal TrackFlow People & Talent tool, even though the API field names remain those defined by the tracker backend. A generic implementation that ignores the company scenario will not be accepted.
+
+⚠️ IMPORTANT: Use only Next.js (App Router), React, and TypeScript. Do not use external state management libraries (Redux, Zustand, Jotai, etc.). Component-level state with hooks is sufficient for this milestone.
+
