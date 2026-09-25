@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///workspaces/ai-engineering-company-project-Colin/uis/backoffice/app/page.tsx"],"sourcesContent":["import Link from \"next/link\";\n\nexport default function HomePage() {\n  return (\n    <div>\n      <h1 className=\"text-2xl font-semibold mb-4\">Backoffice</h1>\n      <p className=\"text-stone-600 mb-6\">\n        Internal tools for the Brasaland Digital team.\n      </p>\n      <Link\n        href=\"/incidents\"\n        className=\"inline-block rounded-md bg-stone-900 px-4 py-2 text-white hover:bg-stone-700\"\n      >\n        Go to Incident Analysis\n      </Link>\n    </div>\n  );\n}\n"],"names":["HomePage","className","href"],"mappings":";;;;;AAAA;;;AAEe,SAASA;IACtB,qBACE,8OAAC;;0BACC,8OAAC;gBAAGC,WAAU;0BAA8B;;;;;;0BAC5C,8OAAC;gBAAEA,WAAU;0BAAsB;;;;;;0BAGnC,8OAAC,0LAAI;gBACHC,MAAK;gBACLD,WAAU;0BACX;;;;;;;;;;;;AAKP"}}]
+}
