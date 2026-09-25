@@ -46,6 +46,12 @@
       "regex": "^/incidents(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/incidents(?:/)?$"
+    },
+    {
+      "page": "/suppliers",
+      "regex": "^/suppliers(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/suppliers(?:/)?$"
     }
   ],
   "dataRoutes": [],

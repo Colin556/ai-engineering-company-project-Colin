@@ -1,0 +1,27 @@
+[project]
+name = "brasaland-api"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "pydantic>=2.10",
+    "python-multipart>=0.0.9",
+    "tinydb>=4.8",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.scripts]
+seed = "seed:main"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28",
+    "pytest>=8.3",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["database", "incident_analysis", "main", "seed", "suppliers"]

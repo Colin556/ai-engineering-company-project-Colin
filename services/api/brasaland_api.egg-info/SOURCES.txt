@@ -1,0 +1,14 @@
+README.md
+database.py
+incident_analysis.py
+main.py
+pyproject.toml
+seed.py
+suppliers.py
+brasaland_api.egg-info/PKG-INFO
+brasaland_api.egg-info/SOURCES.txt
+brasaland_api.egg-info/dependency_links.txt
+brasaland_api.egg-info/entry_points.txt
+brasaland_api.egg-info/requires.txt
+brasaland_api.egg-info/top_level.txt
+tests/test_suppliers.py

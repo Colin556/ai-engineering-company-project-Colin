@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import io
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,8 +26,17 @@ from incident_analysis import (
     metrics_to_json,
     to_export_rows,
 )
+from seed import seed_suppliers
+from suppliers import router as suppliers_router
 
-app = FastAPI(title="Incident File Analyzer API")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    seed_suppliers()
+    yield
+
+
+app = FastAPI(title="Brasaland Backoffice API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +44,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(suppliers_router)
 
 # In-memory store of the last analysis result, used by the export endpoint.
 _last_metrics: dict | None = None

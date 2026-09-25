@@ -5,7 +5,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 7055,
+      "htmlSize": 7728,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -62,7 +62,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 9023,
+      "htmlSize": 9245,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -90,7 +90,7 @@
       "routeType": "page",
       "response": "complete",
       "compute": "static",
-      "htmlSize": 7942,
+      "htmlSize": 8164,
       "experimentalBypassFor": [
         {
           "type": "header",
@@ -113,13 +113,41 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/suppliers": {
+      "routeType": "page",
+      "response": "complete",
+      "compute": "static",
+      "htmlSize": 11134,
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "next-action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/suppliers",
+      "dataRoute": "/suppliers.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "aa1d6ba0a85d7a19f0bdcdc3b32f4eaa",
-    "previewModeSigningKey": "1af3a243b951ee99713c8d85530f356378b1c9648f10146b00044060f1bb7303",
-    "previewModeEncryptionKey": "9f80805cdd8a58fd0f92823b2e67cfd34887bfb8d1c16c7c8c466a4fed522fa0"
+    "previewModeId": "439fe297883e1ddc2523a0ac38b701f7",
+    "previewModeSigningKey": "a48d0244f5eb813bee0c5f336275474c2f36c30c4b9431043c8396dddbc81549",
+    "previewModeEncryptionKey": "f1315e85f6278da488113934fe5555be9a30a1bf58c384b1a38345817423be85"
   }
 }

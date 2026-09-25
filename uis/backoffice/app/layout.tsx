@@ -23,6 +23,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             >
               Incident Analysis
             </Link>
+            <Link
+              href="/suppliers"
+              className="text-sm text-stone-600 hover:text-stone-900"
+            >
+              Suppliers
+            </Link>
           </nav>
         </header>
         <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8">
