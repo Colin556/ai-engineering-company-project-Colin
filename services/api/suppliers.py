@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from enum import StrEnum
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from database import db_lock, suppliers_table
+from dependencies import get_current_user
 
 
 class SupplierStatus(StrEnum):
@@ -51,6 +52,8 @@ class SupplierStatusUpdate(BaseModel):
     status: SupplierStatus
 
 
+# Reads are open so the backoffice can render the catalogue before it handles
+# tokens; every mutation still requires a valid token.
 router = APIRouter(prefix="/suppliers", tags=["suppliers"])
 
 
@@ -62,7 +65,12 @@ def serialize_supplier(document: dict, document_id: int) -> SupplierResponse:
     return SupplierResponse.model_validate({"id": document_id, **document})
 
 
-@router.post("", response_model=SupplierResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=SupplierResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_current_user)],
+)
 def create_supplier(supplier: SupplierCreate) -> SupplierResponse:
     document = {
         **supplier.model_dump(mode="json"),
@@ -106,7 +114,11 @@ def get_supplier(supplier_id: int) -> SupplierResponse:
     return serialize_supplier(document, supplier_id)
 
 
-@router.patch("/{supplier_id}/rate", response_model=SupplierResponse)
+@router.patch(
+    "/{supplier_id}/rate",
+    response_model=SupplierResponse,
+    dependencies=[Depends(get_current_user)],
+)
 def update_supplier_rate(
     supplier_id: int, update: SupplierRateUpdate
 ) -> SupplierResponse:
@@ -121,7 +133,11 @@ def update_supplier_rate(
     return serialize_supplier(document, supplier_id)
 
 
-@router.patch("/{supplier_id}/status", response_model=SupplierResponse)
+@router.patch(
+    "/{supplier_id}/status",
+    response_model=SupplierResponse,
+    dependencies=[Depends(get_current_user)],
+)
 def update_supplier_status(
     supplier_id: int, update: SupplierStatusUpdate
 ) -> SupplierResponse:
@@ -134,7 +150,11 @@ def update_supplier_status(
     return serialize_supplier(document, supplier_id)
 
 
-@router.delete("/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{supplier_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_user)],
+)
 def delete_supplier(supplier_id: int) -> None:
     get_supplier_or_404(supplier_id)
     with db_lock:

@@ -4,7 +4,10 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
-    "pydantic>=2.10",
+    "libpass[bcrypt]>=1.9",
+    "pydantic[email]>=2.10",
+    "python-dotenv>=1.0",
+    "python-jose[cryptography]>=3.3",
     "python-multipart>=0.0.9",
     "tinydb>=4.8",
     "uvicorn[standard]>=0.30",
@@ -24,4 +27,19 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["database", "incident_analysis", "main", "seed", "suppliers"]
+py-modules = [
+    "auth",
+    "config",
+    "database",
+    "dependencies",
+    "incident_analysis",
+    "main",
+    "models",
+    "profiles",
+    "profiles_service",
+    "security",
+    "seed",
+    "suppliers",
+    "users",
+    "users_service",
+]
