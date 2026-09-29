@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { logout } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -33,6 +34,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               {t.addCandidate}
             </Link>
             <LanguageSwitcher />
+            <Link
+              href="/account/profile"
+              className="text-sm font-medium text-amber-900 hover:underline"
+            >
+              {t.myProfile}
+            </Link>
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100"
+            >
+              {t.logout}
+            </button>
           </div>
         </div>
       </header>

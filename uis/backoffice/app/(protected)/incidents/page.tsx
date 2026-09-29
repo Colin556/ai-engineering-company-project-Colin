@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { analyzeIncidentsFile, exportResultsUrl } from "@/lib/api";
+import { analyzeIncidentsFile, downloadResultsCsv } from "@/lib/api";
 import { IncidentAnalysisResult } from "@/lib/types";
 
 export default function IncidentsPage() {
@@ -134,12 +134,17 @@ export default function IncidentsPage() {
             </p>
           </section>
 
-          <a
-            href={exportResultsUrl()}
+          <button
+            type="button"
+            onClick={() =>
+              downloadResultsCsv().catch((err) =>
+                setError(err instanceof Error ? err.message : "Could not download the results.")
+              )
+            }
             className="inline-block rounded-md bg-stone-900 px-4 py-2 text-white hover:bg-stone-700"
           >
             Download results as CSV
-          </a>
+          </button>
         </div>
       )}
     </div>

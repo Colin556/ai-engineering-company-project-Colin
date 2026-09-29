@@ -1,5 +1,35 @@
 export type Locale = "es" | "en";
 
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface AccountProfileInput {
+  name: string | null;
+  phone: string | null;
+  address: string | null;
+}
+
+export interface RegisterInput extends Partial<AccountProfileInput> {
+  email: string;
+  password: string;
+}
+
+export interface AccountProfile extends AccountProfileInput {
+  id: string;
+  user_id: string;
+}
+
+export interface MeResponse {
+  id: string;
+  email: string;
+  role: "admin" | "manager" | "user";
+  is_active: boolean;
+  profile: AccountProfile | null;
+}
+
 export type CandidateStatus =
   | "received"
   | "in_progress"

@@ -31,6 +31,36 @@ export interface SupplierInput {
   status: SupplierStatus;
 }
 
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface ProfileInput {
+  name: string | null;
+  phone: string | null;
+  address: string | null;
+}
+
+export interface RegisterInput extends Partial<ProfileInput> {
+  email: string;
+  password: string;
+}
+
+export interface Profile extends ProfileInput {
+  id: string;
+  user_id: string;
+}
+
+export interface MeResponse {
+  id: string;
+  email: string;
+  role: "admin" | "manager" | "user";
+  is_active: boolean;
+  profile: Profile | null;
+}
+
 export interface Supplier extends SupplierInput {
   id: number;
   updated_at: string;

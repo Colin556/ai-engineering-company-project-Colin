@@ -1,30 +1,26 @@
 import { clearToken, getToken, setToken } from "@/lib/auth";
 import {
-  IncidentAnalysisResult,
+  AccountProfile,
+  AccountProfileInput,
   MeResponse,
-  Profile,
-  ProfileInput,
   RegisterInput,
-  Supplier,
-  SupplierCategory,
-  SupplierCountry,
-  SupplierInput,
-  SupplierStatus,
   TokenResponse,
 } from "@/lib/types";
 
-const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
+const DEFAULT_AUTH_API_BASE_URL = "http://127.0.0.1:8000";
 
-function apiBaseUrl(): string {
-  const envValue = process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL;
-  return envValue.trim().replace(/\/$/, "");
-}
+// Candidate records come from a third-party API; the session JWT is only ever sent to the Brasaland API.
+const AUTH_API_BASE_URL = (
+  process.env.NEXT_PUBLIC_AUTH_API_BASE_URL || DEFAULT_AUTH_API_BASE_URL
+)
+  .trim()
+  .replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
-    readonly fieldErrors: Record<string, string> = {}
+    readonly fieldErrors: Record<string, string> = {},
   ) {
     super(message);
     this.name = "ApiError";
@@ -49,21 +45,20 @@ async function toApiError(response: Response): Promise<ApiError> {
 
   return new ApiError(
     typeof detail === "string" ? detail : `Request failed (HTTP ${response.status}).`,
-    response.status
+    response.status,
   );
 }
 
 async function send(path: string, init?: RequestInit): Promise<Response> {
   try {
-    return await fetch(`${apiBaseUrl()}${path}`, init);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    return await fetch(`${AUTH_API_BASE_URL}${path}`, { ...init, cache: "no-store" });
+  } catch {
     throw new ApiError("Could not reach the server. Please try again.", 0);
   }
 }
 
 /** Calls a protected endpoint: attaches the bearer token and ends the session on 401. */
-async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+async function authJson<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -77,12 +72,7 @@ async function authFetch(path: string, init?: RequestInit): Promise<Response> {
     throw new ApiError("Your session has expired. Please sign in again.", 401);
   }
   if (!response.ok) throw await toApiError(response);
-  return response;
-}
-
-async function authJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await authFetch(path, init);
-  return response.json();
+  return (await response.json()) as T;
 }
 
 export async function login(email: string, password: string): Promise<void> {
@@ -99,7 +89,7 @@ export async function login(email: string, password: string): Promise<void> {
     throw await toApiError(response);
   }
 
-  const token: TokenResponse = await response.json();
+  const token = (await response.json()) as TokenResponse;
   setToken(token.access_token);
 }
 
@@ -123,70 +113,9 @@ export function getMe(): Promise<MeResponse> {
   return authJson<MeResponse>("/auth/me");
 }
 
-export function updateMyProfile(input: ProfileInput): Promise<Profile> {
-  return authJson<Profile>("/profiles/me", {
+export function updateMyProfile(input: AccountProfileInput): Promise<AccountProfile> {
+  return authJson<AccountProfile>("/profiles/me", {
     method: "PUT",
     body: JSON.stringify(input),
-  });
-}
-
-export function analyzeIncidentsFile(
-  file: File
-): Promise<IncidentAnalysisResult> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  return authJson<IncidentAnalysisResult>("/api/incidents/analyze", {
-    method: "POST",
-    body: formData,
-  });
-}
-
-// A plain <a href> cannot send the Authorization header, so download via fetch.
-export async function downloadResultsCsv(): Promise<void> {
-  const response = await authFetch("/api/incidents/results/export");
-  const url = URL.createObjectURL(await response.blob());
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "results.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-export function listSuppliers(
-  filters: { country?: SupplierCountry; category?: SupplierCategory },
-  signal?: AbortSignal
-): Promise<Supplier[]> {
-  const query = new URLSearchParams();
-  if (filters.country) query.set("country", filters.country);
-  if (filters.category) query.set("category", filters.category);
-  const suffix = query.size ? `?${query}` : "";
-  return authJson<Supplier[]>(`/suppliers${suffix}`, { signal });
-}
-
-export function createSupplier(input: SupplierInput): Promise<Supplier> {
-  return authJson<Supplier>("/suppliers", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
-}
-
-export function updateSupplierRate(
-  id: number,
-  ratePerUnit: number
-): Promise<Supplier> {
-  return authJson<Supplier>(`/suppliers/${id}/rate`, {
-    method: "PATCH",
-    body: JSON.stringify({ rate_per_unit: ratePerUnit }),
-  });
-}
-
-export function updateSupplierStatus(
-  id: number,
-  status: SupplierStatus
-): Promise<Supplier> {
-  return authJson<Supplier>(`/suppliers/${id}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ status }),
   });
 }
