@@ -1,55 +1,22 @@
+"""Supplier directory endpoints and initial seed data."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import StrEnum
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, ConfigDict, Field
+from tinydb import Query as TinyQuery
 
-from database import db_lock, suppliers_table
-from dependencies import get_current_user
-
-
-class SupplierStatus(StrEnum):
-    ACTIVE = "active"
-    SUSPENDED = "suspended"
-
-
-class SupplierCategory(StrEnum):
-    MEAT = "meat"
-    PRODUCE = "produce"
-    SAUCE = "sauce"
-    BEVERAGE = "beverage"
-    PACKAGING = "packaging"
-    CLEANING = "cleaning"
-
-
-class SupplierCountry(StrEnum):
-    COLOMBIA = "CO"
-    UNITED_STATES = "US"
-
-
-class SupplierCreate(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-
-    name: str = Field(min_length=1)
-    country: SupplierCountry
-    product_categories: list[SupplierCategory] = Field(min_length=1)
-    rate_per_unit: float = Field(gt=0)
-    status: SupplierStatus
-
-
-class SupplierResponse(SupplierCreate):
-    id: int
-    updated_at: datetime
-
-
-class SupplierRateUpdate(BaseModel):
-    rate_per_unit: float = Field(gt=0)
-
-
-class SupplierStatusUpdate(BaseModel):
-    status: SupplierStatus
+from accounts import get_current_user
+from core import db_lock, suppliers_table
+from models import (
+    SupplierCategory,
+    SupplierCountry,
+    SupplierCreate,
+    SupplierRateUpdate,
+    SupplierResponse,
+    SupplierStatusUpdate,
+)
 
 
 # Reads are open so the backoffice can render the catalogue before it handles
@@ -159,3 +126,58 @@ def delete_supplier(supplier_id: int) -> None:
     get_supplier_or_404(supplier_id)
     with db_lock:
         suppliers_table.remove(doc_ids=[supplier_id])
+
+
+# ---------- Seed data ----------
+
+INITIAL_SUPPLIERS = (
+    SupplierCreate(
+        name="Carnes del Valle S.A.",
+        country="CO",
+        product_categories=["meat"],
+        rate_per_unit=18.50,
+        status="active",
+    ),
+    SupplierCreate(
+        name="MiamiMeat Co.",
+        country="US",
+        product_categories=["meat"],
+        rate_per_unit=22.75,
+        status="active",
+    ),
+    SupplierCreate(
+        name="Salsas Artesanales Ltda.",
+        country="CO",
+        product_categories=["sauce"],
+        rate_per_unit=9.50,
+        status="active",
+    ),
+)
+
+
+def seed_suppliers() -> int:
+    supplier_query = TinyQuery()
+    inserted = 0
+
+    with db_lock:
+        for supplier in INITIAL_SUPPLIERS:
+            if suppliers_table.contains(supplier_query.name == supplier.name):
+                continue
+            suppliers_table.insert(
+                {
+                    **supplier.model_dump(mode="json"),
+                    "updated_at": utc_now().isoformat(),
+                }
+            )
+            inserted += 1
+
+    return inserted
+
+
+def run_seed() -> None:
+    inserted = seed_suppliers()
+    print(f"Supplier seeding complete: {inserted} record(s) inserted.")
+
+
+if __name__ == "__main__":
+    run_seed()

@@ -1,7 +1,7 @@
-"""Incident File Analyzer API.
+"""Brasaland Backoffice API entry point.
 
-Exposes the same validation/analysis logic used by scripts/analyze.py as
-HTTP endpoints:
+Wires the account, supplier and incident routes into one FastAPI app. The
+incident endpoints use the same validation/analysis logic as scripts/analyze.py:
 
     POST /api/incidents/analyze          - upload a CSV, get the summary as JSON
     GET  /api/incidents/results/export    - download the last analysis as CSV
@@ -20,8 +20,7 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from auth import router as auth_router
-from dependencies import get_current_user
+from accounts import auth_router, get_current_user, profiles_router, users_router
 from incident_analysis import (
     analyze,
     load_records_from_text,
@@ -29,10 +28,8 @@ from incident_analysis import (
     to_export_rows,
 )
 from models import UserResponse
-from profiles import router as profiles_router
-from seed import seed_suppliers
 from suppliers import router as suppliers_router
-from users import router as users_router
+from suppliers import seed_suppliers
 
 
 @asynccontextmanager

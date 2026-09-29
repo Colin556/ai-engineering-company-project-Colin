@@ -14,9 +14,9 @@ os.environ.setdefault("SUPPLIERS_DB_PATH", str(API_DIR / "data" / "test_db.json"
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from database import profiles_table, suppliers_table, users_table  # noqa: E402
+from core import profiles_table, suppliers_table, users_table  # noqa: E402
 from main import app  # noqa: E402
-from seed import seed_suppliers  # noqa: E402
+from suppliers import seed_suppliers  # noqa: E402
 
 
 @pytest.fixture

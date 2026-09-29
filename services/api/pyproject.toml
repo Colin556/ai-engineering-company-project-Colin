@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-seed = "seed:main"
+seed = "suppliers:run_seed"
 
 [dependency-groups]
 dev = [
@@ -28,18 +28,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 py-modules = [
-    "auth",
-    "config",
-    "database",
-    "dependencies",
+    "accounts",
+    "core",
     "incident_analysis",
     "main",
     "models",
-    "profiles",
-    "profiles_service",
-    "security",
-    "seed",
     "suppliers",
-    "users",
-    "users_service",
 ]

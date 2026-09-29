@@ -1,4 +1,4 @@
-"""Pydantic schemas for the authentication, user and profile modules."""
+"""Pydantic schemas for accounts (auth, users, profiles) and suppliers."""
 
 from __future__ import annotations
 
@@ -84,3 +84,45 @@ class MeResponse(BaseModel):
     role: Role
     is_active: bool
     profile: ProfileResponse | None = None
+
+
+class SupplierStatus(StrEnum):
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+
+
+class SupplierCategory(StrEnum):
+    MEAT = "meat"
+    PRODUCE = "produce"
+    SAUCE = "sauce"
+    BEVERAGE = "beverage"
+    PACKAGING = "packaging"
+    CLEANING = "cleaning"
+
+
+class SupplierCountry(StrEnum):
+    COLOMBIA = "CO"
+    UNITED_STATES = "US"
+
+
+class SupplierCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(min_length=1)
+    country: SupplierCountry
+    product_categories: list[SupplierCategory] = Field(min_length=1)
+    rate_per_unit: float = Field(gt=0)
+    status: SupplierStatus
+
+
+class SupplierResponse(SupplierCreate):
+    id: int
+    updated_at: datetime
+
+
+class SupplierRateUpdate(BaseModel):
+    rate_per_unit: float = Field(gt=0)
+
+
+class SupplierStatusUpdate(BaseModel):
+    status: SupplierStatus
