@@ -10,11 +10,18 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
 os.environ.setdefault("ALGORITHM", "HS256")
 os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 os.environ.setdefault("SUPPLIERS_DB_PATH", str(API_DIR / "data" / "test_db.json"))
+# Never send real email from tests, even if a developer's shell exports a key.
+os.environ["RESEND_API_KEY"] = ""
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from core import profiles_table, suppliers_table, users_table  # noqa: E402
+from core import (  # noqa: E402
+    password_reset_tokens_table,
+    profiles_table,
+    suppliers_table,
+    users_table,
+)
 from main import app  # noqa: E402
 from suppliers import seed_suppliers  # noqa: E402
 
@@ -26,14 +33,13 @@ def client() -> TestClient:
 
 @pytest.fixture(autouse=True)
 def reset_database():
-    suppliers_table.truncate()
-    users_table.truncate()
-    profiles_table.truncate()
+    tables = (suppliers_table, users_table, profiles_table, password_reset_tokens_table)
+    for table in tables:
+        table.truncate()
     seed_suppliers()
     yield
-    suppliers_table.truncate()
-    users_table.truncate()
-    profiles_table.truncate()
+    for table in tables:
+        table.truncate()
 
 
 @pytest.fixture

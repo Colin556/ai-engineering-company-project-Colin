@@ -78,6 +78,26 @@ class Token(BaseModel):
     expires_in: int
 
 
+class ForgotPasswordRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=1, max_length=2048)
+    new_password: str = Field(min_length=8, max_length=MAX_PASSWORD_LENGTH)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=MAX_PASSWORD_LENGTH)
+    new_password: str = Field(min_length=8, max_length=MAX_PASSWORD_LENGTH)
+
+
+class MessageResponse(BaseModel):
+    detail: str
+
+
 class MeResponse(BaseModel):
     id: str
     email: EmailStr

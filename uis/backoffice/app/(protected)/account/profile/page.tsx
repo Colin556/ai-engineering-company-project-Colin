@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { ApiError, getMe, updateMyProfile } from "@/lib/api";
 import { MeResponse } from "@/lib/types";
@@ -83,6 +84,12 @@ export default function ProfilePage() {
         <dd className="font-medium">{me.email}</dd>
         <dt className="text-stone-500">Role</dt>
         <dd className="capitalize">{me.role}</dd>
+        <dt className="text-stone-500">Password</dt>
+        <dd>
+          <Link href="/account/change-password" className="underline">
+            Change password
+          </Link>
+        </dd>
       </dl>
 
       <form onSubmit={handleSubmit} className="grid gap-4 rounded-lg border border-stone-300 bg-white p-6">

@@ -1,11 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
 import { login } from "@/lib/api";
 
 const INPUT = "rounded border border-stone-300 px-3 py-2";
+
+function ResetSuccessNotice() {
+  if (useSearchParams().get("reset") !== "success") return null;
+  return (
+    <p role="status" className="mb-4 rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-800">
+      Your password has been reset. Sign in with your new password.
+    </p>
+  );
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +39,9 @@ export default function LoginPage() {
   return (
     <>
       <h1 className="mb-6 text-2xl font-semibold">Sign in</h1>
+      <Suspense fallback={null}>
+        <ResetSuccessNotice />
+      </Suspense>
       <form onSubmit={handleSubmit} className="grid gap-4">
         <label className="grid gap-1 text-sm font-medium">
           Email
@@ -53,6 +65,9 @@ export default function LoginPage() {
             className={INPUT}
           />
         </label>
+        <Link href="/forgot-password" className="-mt-2 justify-self-end text-sm text-stone-600 underline">
+          Forgot your password?
+        </Link>
 
         {error && (
           <p role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">

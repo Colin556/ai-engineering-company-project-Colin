@@ -123,6 +123,39 @@ export function getMe(): Promise<MeResponse> {
   return authJson<MeResponse>("/auth/me");
 }
 
+async function postPublicJson(path: string, body: unknown): Promise<void> {
+  const response = await send(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await toApiError(response);
+}
+
+export function requestPasswordReset(email: string): Promise<void> {
+  return postPublicJson("/auth/forgot-password", { email });
+}
+
+export function resetPassword(token: string, newPassword: string): Promise<void> {
+  return postPublicJson("/auth/reset-password", {
+    token,
+    new_password: newPassword,
+  });
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  await authFetch("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  });
+}
+
 export function updateMyProfile(input: ProfileInput): Promise<Profile> {
   return authJson<Profile>("/profiles/me", {
     method: "PUT",

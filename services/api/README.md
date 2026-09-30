@@ -25,12 +25,32 @@ reference the TinyDB user id as `user_uuid`.
 Environment variables (`.env`): `SECRET_KEY`, `ALGORITHM` (default `HS256`),
 `ACCESS_TOKEN_EXPIRE_MINUTES` (default `30`).
 
+### Password reset email (Resend)
+
+Reset emails are sent through [Resend](https://resend.com). Set these in
+`services/api/.env` (never commit real values):
+
+| Variable | Required | Default | Purpose |
+| --- | --- | --- | --- |
+| `RESEND_API_KEY` | yes, to send email | — | Resend API key (create one at resend.com → API Keys). If empty, the API still answers `200` but logs a warning and sends nothing. |
+| `EMAIL_FROM` | no | `Brasaland <onboarding@resend.dev>` | Sender. The onboarding sender needs no domain but only delivers to the email on your Resend account. |
+| `FRONTEND_BASE_URL` | no | `http://localhost:3000` | Backoffice URL used to build `<FRONTEND_BASE_URL>/reset-password?token=...`. |
+| `PASSWORD_RESET_TOKEN_EXPIRE_MINUTES` | no | `30` | Reset link lifetime, clamped to 15–60. |
+
+Reset tokens are signed JWTs (`type=password_reset`, unique `jti`, `exp`). Only a
+SHA-256 hash of the `jti` is stored in the TinyDB `password_reset_tokens` table;
+the row is deleted on use, when a newer link is requested, or when the password
+is changed, so each link works once. Reset tokens are rejected as session tokens.
+
 | Route | Auth | Notes |
 | --- | --- | --- |
 | `POST /users` | public | Register. Optional `name`/`phone`/`address` create the linked profile. Role is always `user`. |
 | `POST /auth/login` | public | OAuth2 password form; send the email as `username`. Returns a bearer token. |
 | `POST /auth/login/json` | public | Same, with a JSON `{email, password}` body. |
 | `GET /auth/me` | token | Email, role and linked profile. |
+| `POST /auth/forgot-password` | public | `{email}`. Always `200` with the same message; emails a reset link only if the account exists. |
+| `POST /auth/reset-password` | public | `{token, new_password}`. `400` for invalid, expired or already-used tokens. |
+| `POST /auth/change-password` | token | `{current_password, new_password}`. `400` if the current password is wrong. |
 | `GET /users`, `GET/PUT/DELETE /users/{id}` | token | Read/update/delete restricted to the owner or an admin. Only an admin may change `role`/`is_active`. |
 | `GET/PUT /profiles/me` | token | Owner-only display name and contact data. |
 | `GET /suppliers`, `GET /suppliers/{id}` | public | Temporarily open so the backoffice can render the catalogue. |

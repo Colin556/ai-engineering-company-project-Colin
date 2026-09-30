@@ -8,27 +8,38 @@ routes across the API.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from tinydb import Query
 
 from core import (
+    FRONTEND_BASE_URL,
     create_access_token,
+    create_password_reset_token,
     db_lock,
     decode_access_token,
+    decode_password_reset_token,
     hash_password,
+    password_reset_tokens_table,
     profiles_table,
     users_table,
     verify_password,
 )
+from emails import send_password_reset_email
 from models import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     MeResponse,
+    MessageResponse,
     ProfileResponse,
     ProfileUpdate,
+    ResetPasswordRequest,
     Role,
     Token,
     UserCreate,
@@ -38,6 +49,7 @@ from models import (
 
 UserQuery = Query()
 ProfileQuery = Query()
+ResetQuery = Query()
 
 
 # ---------- Profile data access ----------
@@ -183,6 +195,59 @@ def authenticate_user(email: str, password: str) -> dict | None:
     return user
 
 
+# ---------- Password reset tokens ----------
+
+
+def _hash_token_id(jti: str) -> str:
+    return hashlib.sha256(jti.encode("utf-8")).hexdigest()
+
+
+def issue_password_reset_token(user_id: str) -> str:
+    """Create a signed reset token; only the newest one per user stays valid."""
+    token, jti, expires_at = create_password_reset_token(user_id)
+    now = datetime.now(timezone.utc).isoformat()
+    with db_lock:
+        password_reset_tokens_table.remove(
+            (ResetQuery.user_id == user_id) | (ResetQuery.expires_at < now)
+        )
+        password_reset_tokens_table.insert(
+            {
+                "jti_hash": _hash_token_id(jti),
+                "user_id": user_id,
+                "expires_at": expires_at.isoformat(),
+            }
+        )
+    return token
+
+
+def consume_password_reset_token(token: str) -> str | None:
+    """Return the user id and invalidate the token, or None if it is not usable."""
+    claims = decode_password_reset_token(token)
+    if claims is None:
+        return None
+    jti, user_id = claims.get("jti"), claims.get("sub")
+    if not jti or not user_id:
+        return None
+
+    with db_lock:
+        row = password_reset_tokens_table.get(
+            ResetQuery.jti_hash == _hash_token_id(jti)
+        )
+        if row is None or row["user_id"] != user_id:
+            return None
+        password_reset_tokens_table.remove(ResetQuery.user_id == user_id)
+    return user_id
+
+
+def revoke_password_reset_tokens(user_id: str) -> None:
+    with db_lock:
+        password_reset_tokens_table.remove(ResetQuery.user_id == user_id)
+
+
+def build_password_reset_url(token: str) -> str:
+    return f"{FRONTEND_BASE_URL}/reset-password?{urlencode({'token': token})}"
+
+
 # ---------- Auth dependencies ----------
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -279,6 +344,64 @@ def read_me(current_user: UserResponse = Depends(get_current_user)) -> MeRespons
         is_active=current_user.is_active,
         profile=ProfileResponse.model_validate(profile) if profile else None,
     )
+
+
+FORGOT_PASSWORD_MESSAGE = (
+    "If that address is registered, you'll receive a link shortly."
+)
+
+INVALID_RESET_TOKEN = HTTPException(
+    status_code=status.HTTP_400_BAD_REQUEST,
+    detail="This reset link is invalid, expired or has already been used.",
+)
+
+
+@auth_router.post("/forgot-password", response_model=MessageResponse)
+def forgot_password(
+    payload: ForgotPasswordRequest, background_tasks: BackgroundTasks
+) -> MessageResponse:
+    """Always 200 with the same body, so registered emails cannot be enumerated."""
+    user = get_user_by_email(payload.email)
+    if user is not None and user.get("is_active", False):
+        token = issue_password_reset_token(user["id"])
+        # Sent after the response so timing does not reveal whether the user exists.
+        background_tasks.add_task(
+            send_password_reset_email, user["email"], build_password_reset_url(token)
+        )
+    return MessageResponse(detail=FORGOT_PASSWORD_MESSAGE)
+
+
+@auth_router.post("/reset-password", response_model=MessageResponse)
+def reset_password(payload: ResetPasswordRequest) -> MessageResponse:
+    user_id = consume_password_reset_token(payload.token)
+    if user_id is None:
+        raise INVALID_RESET_TOKEN
+
+    user = get_user_by_id(user_id)
+    if user is None or not user.get("is_active", False):
+        raise INVALID_RESET_TOKEN
+
+    apply_user_changes(user_id, {"password": payload.new_password})
+    return MessageResponse(detail="Your password has been reset. You can now sign in.")
+
+
+@auth_router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: UserResponse = Depends(get_current_user),
+) -> MessageResponse:
+    user = get_user_by_id(current_user.id)
+    if user is None or not verify_password(
+        payload.current_password, user["hashed_password"]
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+
+    apply_user_changes(current_user.id, {"password": payload.new_password})
+    revoke_password_reset_tokens(current_user.id)
+    return MessageResponse(detail="Your password has been changed.")
 
 
 # ---------- /users ----------
