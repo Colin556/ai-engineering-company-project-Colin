@@ -48,7 +48,10 @@ def _send_email(to: str, subject: str, html_body: str, text_body: str) -> None:
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS):
             pass
     except urllib.error.HTTPError as exc:
-        logger.error("Resend rejected email '%s' (HTTP %s).", subject, exc.code)
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        logger.error(
+            "Resend rejected email '%s' (HTTP %s): %s", subject, exc.code, detail
+        )
     except (urllib.error.URLError, TimeoutError) as exc:
         logger.error("Could not reach Resend for email '%s': %s", subject, exc)
 
