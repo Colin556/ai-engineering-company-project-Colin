@@ -22,7 +22,34 @@ FIELDS = [
     "status",
     "satisfaction_score",
     "created_at",
+    "description",
+    "location",
 ]
+
+LOCATIONS = [
+    "LOC-MEDELLIN-01",
+    "LOC-MEDELLIN-02",
+    "LOC-MEDELLIN-03",
+    "LOC-MEDELLIN-04",
+    "LOC-BOGOTA-01",
+    "LOC-BOGOTA-02",
+    "LOC-BOGOTA-03",
+    "LOC-CALI-01",
+    "LOC-CALI-02",
+    "LOC-CALI-03",
+    "LOC-MIAMI-01",
+    "LOC-MIAMI-02",
+    "LOC-ORLANDO-01",
+    "LOC-ORLANDO-02",
+]
+
+DESCRIPTIONS = {
+    "billing": "The customer reports an incorrect charge on the final bill.",
+    "technical": "The point-of-sale system failed while processing the request.",
+    "shipping": "The customer reports that the order arrived later than expected.",
+    "product": "The customer reports that an item was missing or incorrect.",
+    "other": "The customer reported an issue that needs support follow-up.",
+}
 
 NAMES = [
     "Laura Gomez", "Carlos Ruiz", "Maria Torres", "Andres Diaz", "Sofia Lopez",
@@ -55,6 +82,8 @@ for i in range(1, 101):
         "status": status,
         "satisfaction_score": satisfaction_score,
         "created_at": created_at,
+        "description": DESCRIPTIONS[category],
+        "location": LOCATIONS[(i - 1) % len(LOCATIONS)],
     }
     rows.append(row)
 

@@ -1,4 +1,4 @@
-# Incident File Analyzer API (`services/api`)
+# Brasaland Backoffice API (`services/api`)
 
 FastAPI backend exposing the incident analysis logic used by
 `scripts/analyze.py`. See [scripts/INCIDENT_ANALYZER.md](../../scripts/INCIDENT_ANALYZER.md)
@@ -58,7 +58,37 @@ is changed, so each link works once. Reset tokens are rejected as session tokens
 | `POST /api/incidents/analyze`, `GET /api/incidents/results/export` | token | Incident data. |
 
 Unauthenticated requests get `401`; authenticated requests for someone else's
-resource get `403`.
+resource get `403`. Unexpected server errors return a generic message without
+exposing a traceback.
+
+### Incident manager
+
+Incident records are stored in TinyDB alongside the backoffice data. Writes
+require authentication; reads support the authenticated backoffice and return
+empty results and zero-valued summaries when no incidents exist.
+
+| Route | Notes |
+| --- | --- |
+| `POST /api/incidents` | Create an incident; invalid fields return `400` with `{field, message}`. |
+| `GET /api/incidents` | List; optional `status`, `origin`, `branch`, and `category` filters. |
+| `GET /api/incidents/{id}` | Incident detail; `404` when missing. |
+| `GET /api/incidents/{id}/status?status=...` | Transition status according to the lifecycle. `PATCH` is also supported for the backoffice. |
+| `GET /api/incidents/summary` | Totals by status, category, origin, and branch. |
+| `GET /api/incidents/options` | Allowed form values and Brasaland branch IDs/labels. |
+
+Seed the historical CSV once or rerun safely; records are deduplicated by the
+CSV `incident_id`:
+
+```bash
+python scripts/seed_incidents.py
+python scripts/seed_incidents.py path/to/incidents.csv
+```
+
+The seeder reuses analyzer validation. It maps `closed` to `resolved`, keeps
+the analyzer category values, uses `description` for the title and description,
+maps `location` to a `LOC-CITY-NN` branch, and sets missing legacy locations to
+`central`. Historical rows without descriptions get a category-based generic
+description. Invalid rows are reported and not inserted.
 
 ### Manual check in `/docs`
 
@@ -68,7 +98,7 @@ resource get `403`.
 4. Calling the same route with no token, a malformed token, or an expired one
    returns `401`.
 
-## Endpoints
+## Analyzer compatibility endpoints
 
 - `POST /api/incidents/analyze` — multipart/form-data upload with a `file`
   field containing the CSV. Returns the analysis summary as JSON. Returns

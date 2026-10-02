@@ -1,7 +1,8 @@
-# Incident File Analyzer — scripts
+# Incident CSV Validation and Seeding — scripts
 
-Phase 1 of the Incident File Analyzer: a CLI script that validates and
-summarizes an after-sales incidents CSV export.
+The original analyzer validates and summarizes the historical after-sales CSV.
+The incident manager seeder reuses that validation before transforming valid
+rows into persisted customer-origin incidents.
 
 > No `CONTEXT-company.md` existed for this feature in the repo, so the CSV
 > schema below was defined by the developer and confirmed with the user
@@ -46,6 +47,25 @@ Export results to CSV? [y/n]:
 ```
 
 Answering `y` writes `results.csv` (one row per metric) next to the script.
+
+Seed historical incidents into the TinyDB used by `services/api`:
+
+```bash
+python3 scripts/seed_incidents.py
+python3 scripts/seed_incidents.py path/to/incidents.csv
+```
+
+The seeder deduplicates on `incident_id`. Categories retain their analyzer
+values; `open` and `discarded` keep their states, while `closed` becomes
+`resolved`. It uses the CSV `description` as both the incident description and
+the source for a short title, converts `created_at` (or `date`) to UTC, and maps
+`location` values to the project's `LOC-CITY-NN` identifiers. Legacy CSV rows
+without a `location` are assigned to `central`; rows without a description get
+a generic category-based description. CSV rows with analyzer validation issues,
+invalid dates, or unknown locations are skipped and listed in the final report.
+
+The sample-data generator now emits `description` and `location` columns using
+the same branch ID format as the company sample data.
 
 ## Expected values for the sample file (100 records, seed=42)
 

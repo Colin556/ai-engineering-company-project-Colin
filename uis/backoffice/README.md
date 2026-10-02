@@ -1,7 +1,7 @@
 # Backoffice (`uis/backoffice`)
 
 Internal Next.js app for Brasaland Digital operations tools. Currently
-includes the **Incident Analysis** page.
+includes the **Incident Manager** for registering, tracking, and summarizing operational incidents.
 
 ## Run locally
 
@@ -17,6 +17,5 @@ Set `NEXT_PUBLIC_API_BASE_URL` if the backend isn't at the default
 ## Pages
 
 - `/` — landing/menu.
-- `/incidents` — upload the incidents CSV (drag & drop or file picker), view
-  the summary (general metrics, category/status breakdown, satisfaction
-  index, invalid record counts), and download the results as CSV.
+- `/incidents` — filter incidents, update lifecycle status, and view aggregated metrics.
+- `/incidents/new` — register customer, branch, or internal incidents.

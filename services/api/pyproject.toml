@@ -32,6 +32,8 @@ py-modules = [
     "core",
     "emails",
     "incident_analysis",
+    "incident_catalog",
+    "incidents",
     "main",
     "models",
     "suppliers",

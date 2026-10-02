@@ -9,6 +9,55 @@ export interface IncidentAnalysisResult {
   avg_satisfaction_closed: number | null;
 }
 
+export const INCIDENT_CATEGORIES = [
+  "billing",
+  "technical",
+  "shipping",
+  "product",
+  "other",
+] as const;
+export const INCIDENT_STATUSES = [
+  "open",
+  "in_progress",
+  "resolved",
+  "discarded",
+] as const;
+export const INCIDENT_ORIGINS = ["customer", "branch", "internal"] as const;
+
+export type IncidentCategory = (typeof INCIDENT_CATEGORIES)[number];
+export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];
+export type IncidentOrigin = (typeof INCIDENT_ORIGINS)[number];
+
+export interface IncidentInput {
+  title: string;
+  description: string;
+  category: IncidentCategory;
+  status: IncidentStatus;
+  origin: IncidentOrigin;
+  branch: string;
+}
+
+export interface Incident extends IncidentInput {
+  id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IncidentOptions {
+  categories: IncidentCategory[];
+  statuses: IncidentStatus[];
+  origins: IncidentOrigin[];
+  branches: { value: string; label: string }[];
+}
+
+export interface IncidentSummary {
+  total: number;
+  by_status: Record<IncidentStatus, number>;
+  by_category: Record<IncidentCategory, number>;
+  by_origin: Record<IncidentOrigin, number>;
+  by_branch: Record<string, number>;
+}
+
 export const SUPPLIER_COUNTRIES = ["CO", "US"] as const;
 export const SUPPLIER_CATEGORIES = [
   "meat",

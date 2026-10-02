@@ -12,7 +12,7 @@ export default function HomePage() {
           href="/incidents"
           className="inline-block rounded-md bg-stone-900 px-4 py-2 text-white hover:bg-stone-700"
         >
-          Go to Incident Analysis
+          Open Incident Manager
         </Link>
         <Link
           href="/suppliers"

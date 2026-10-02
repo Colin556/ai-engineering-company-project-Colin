@@ -14,11 +14,12 @@ from __future__ import annotations
 
 import csv
 import io
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from accounts import auth_router, get_current_user, profiles_router, users_router
 from incident_analysis import (
@@ -27,6 +28,7 @@ from incident_analysis import (
     metrics_to_json,
     to_export_rows,
 )
+from incidents import router as incidents_router
 from models import UserResponse
 from suppliers import router as suppliers_router
 from suppliers import seed_suppliers
@@ -51,6 +53,16 @@ app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(suppliers_router)
+app.include_router(incidents_router)
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(_, exc: Exception):
+    logging.getLogger(__name__).exception("Unhandled API exception", exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again."},
+    )
 
 # In-memory store of the last analysis result, used by the export endpoint.
 _last_metrics: dict | None = None

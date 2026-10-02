@@ -146,3 +146,51 @@ class SupplierRateUpdate(BaseModel):
 
 class SupplierStatusUpdate(BaseModel):
     status: SupplierStatus
+
+
+class IncidentCategory(StrEnum):
+    BILLING = "billing"
+    TECHNICAL = "technical"
+    SHIPPING = "shipping"
+    PRODUCT = "product"
+    OTHER = "other"
+
+
+class IncidentStatus(StrEnum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    DISCARDED = "discarded"
+
+
+class IncidentOrigin(StrEnum):
+    CUSTOMER = "customer"
+    BRANCH = "branch"
+    INTERNAL = "internal"
+
+
+class IncidentCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+
+    title: str = Field(min_length=1, max_length=160)
+    description: str = Field(min_length=1, max_length=5000)
+    category: IncidentCategory
+    status: IncidentStatus
+    origin: IncidentOrigin
+    branch: str = Field(min_length=1, max_length=40)
+
+
+class IncidentStatusUpdate(BaseModel):
+    status: IncidentStatus
+
+
+class IncidentResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    category: IncidentCategory
+    status: IncidentStatus
+    origin: IncidentOrigin
+    branch: str
+    created_at: datetime
+    updated_at: datetime

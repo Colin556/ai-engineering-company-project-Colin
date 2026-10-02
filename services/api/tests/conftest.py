@@ -4,6 +4,7 @@ from pathlib import Path
 
 API_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(API_DIR))
+sys.path.insert(0, str(API_DIR.parents[1] / "scripts"))
 
 # Tests must never depend on a developer's real secret or database.
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
@@ -19,6 +20,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from core import (  # noqa: E402
     password_reset_tokens_table,
     profiles_table,
+    incidents_table,
     suppliers_table,
     users_table,
 )
@@ -33,7 +35,13 @@ def client() -> TestClient:
 
 @pytest.fixture(autouse=True)
 def reset_database():
-    tables = (suppliers_table, users_table, profiles_table, password_reset_tokens_table)
+    tables = (
+        suppliers_table,
+        users_table,
+        profiles_table,
+        password_reset_tokens_table,
+        incidents_table,
+    )
     for table in tables:
         table.truncate()
     seed_suppliers()

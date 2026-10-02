@@ -1,6 +1,11 @@
 import { clearToken, getToken, setToken } from "@/lib/auth";
 import {
   IncidentAnalysisResult,
+  Incident,
+  IncidentInput,
+  IncidentOptions,
+  IncidentStatus,
+  IncidentSummary,
   MeResponse,
   Profile,
   ProfileInput,
@@ -34,6 +39,24 @@ export class ApiError extends Error {
 async function toApiError(response: Response): Promise<ApiError> {
   const body = await response.json().catch(() => null);
   const detail = body?.detail;
+
+  if (response.status >= 500) {
+    return new ApiError(
+      "The service is temporarily unavailable. Please try again.",
+      response.status
+    );
+  }
+
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    const field = typeof detail.field === "string" ? detail.field : undefined;
+    const message =
+      typeof detail.message === "string" ? detail.message : "Check your entries and try again.";
+    return new ApiError(
+      message,
+      response.status,
+      field ? { [field]: message } : {}
+    );
+  }
 
   if (Array.isArray(detail)) {
     const fieldErrors: Record<string, string> = {};
@@ -172,6 +195,47 @@ export function analyzeIncidentsFile(
   return authJson<IncidentAnalysisResult>("/api/incidents/analyze", {
     method: "POST",
     body: formData,
+  });
+}
+
+export function getIncidentOptions(signal?: AbortSignal): Promise<IncidentOptions> {
+  return authJson<IncidentOptions>("/api/incidents/options", { signal });
+}
+
+export function createIncident(input: IncidentInput): Promise<Incident> {
+  return authJson<Incident>("/api/incidents", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function listIncidents(
+  filters: {
+    status?: IncidentStatus;
+    origin?: IncidentInput["origin"];
+    branch?: string;
+  },
+  signal?: AbortSignal
+): Promise<Incident[]> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) query.set(key, value);
+  }
+  const suffix = query.size ? `?${query}` : "";
+  return authJson<Incident[]>(`/api/incidents${suffix}`, { signal });
+}
+
+export function getIncidentSummary(signal?: AbortSignal): Promise<IncidentSummary> {
+  return authJson<IncidentSummary>("/api/incidents/summary", { signal });
+}
+
+export function updateIncidentStatus(
+  id: number,
+  status: IncidentStatus
+): Promise<Incident> {
+  return authJson<Incident>(`/api/incidents/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
 }
 

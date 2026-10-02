@@ -49,6 +49,7 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 db = TinyDB(DB_PATH)
 suppliers_table = db.table("suppliers")
+incidents_table = db.table("incidents")
 
 # Users and profiles live in TinyDB only. PostgreSQL/Supabase tables must never
 # hold credentials; they reference the TinyDB user id as `user_uuid`.
