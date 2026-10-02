@@ -43,3 +43,16 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
 ### Follow-ups
 - Auth helpers are duplicated per app; could move to `packages/shared` once cross-app builds are configured.
 - Supplier `GET` endpoints on the API are still public; consider requiring auth now that the frontend sends the token.
+
+
+10/02/26
+
+### Incident Manager
+- Added TinyDB-backed incident CRUD, filters, lifecycle transitions, field validation, generic server errors, and summary metrics under `/api/incidents`.
+- Replaced the incident CSV upload page with registration, filtering, status updates with rollback, and summary views in the backoffice.
+- Added an idempotent historical CSV seeder that reuses analyzer validation, maps `closed` to `resolved`, and reports invalid rows. Seeded 94 valid incidents; 6 invalid rows were skipped. Re-running skipped all 94 existing records.
+- Added all 14 restaurant branch IDs in the existing `LOC-CITY-NN` format plus `central`; enriched generated CSV rows with descriptions and locations. Legacy rows without location use `central`.
+
+### Verification
+- All 29 API tests passed; the Next.js production build and TypeScript check passed.
+- Backoffice ESLint remains unavailable because the project has no ESLint 9 configuration.
