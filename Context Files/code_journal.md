@@ -45,7 +45,7 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
 - Supplier `GET` endpoints on the API are still public; consider requiring auth now that the frontend sends the token.
 
 
-10/02/26
+10/02/26 AM
 
 ### Incident Manager
 - Added TinyDB-backed incident CRUD, filters, lifecycle transitions, field validation, generic server errors, and summary metrics under `/api/incidents`.
@@ -56,3 +56,24 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
 ### Verification
 - All 29 API tests passed; the Next.js production build and TypeScript check passed.
 - Backoffice ESLint remains unavailable because the project has no ESLint 9 configuration.
+
+10/02/26 PM
+
+### Error Handling Audit
+- Completed a read-only, repository-wide source scan covering both Next.js apps, the corporate website, FastAPI, Python scripts, and executable skill examples. Reviewed error-bearing operations and their callers; no application code was changed.
+- Produced a severity-ranked audit report with file locations, error-handling categories, and suggested fixes. No CRITICAL findings were confirmed.
+- Identified risks around sensitive validation responses and logs, partial account writes, reset-token consumption before password persistence, raw API errors reaching users, unhandled browser storage failures, unchecked response shapes, and missing custom error boundaries.
+- Documented frontend state issues, including stale candidate data after route changes, overlapping requests, missing options-loading feedback, and incomplete mutation feedback. Existing navigation and resubmittable forms were counted as valid recovery actions.
+- Reviewed script and CSV handling for silent score failures, malformed input, unhandled prompts and file writes, misleading success exits, and personal data printed by the pandas example. Also flagged website signup confirmation that claims registration and email delivery without submitting data.
+
+### Verification
+- In-memory CSV probes confirmed that malformed satisfaction scores are silently dropped, `NaN` is accepted, and unterminated quoted fields are parsed permissively.
+- A seeder probe using synthetic rows and a stubbed in-memory database confirmed exit code 0 for both empty input and entirely invalid input.
+- An unattended analyzer run using synthetic standard input confirmed an unhandled `EOFError` at the export prompt; the analyzer process exited with code 1.
+- Probes avoided real databases and secrets. The repository test suite was not run because its fixtures truncate configured database tables.
+- FastAPI dependencies were unavailable in the default interpreter, and no root Pipenv environment existed. Default request-validation exposure remains a static finding, not a runtime-verified result.
+- No scope-based overly broad catch was confirmed. Uncaught exceptions that already terminate a script nonzero were not incorrectly classified as successful exits.
+
+### Follow-ups
+- Implement the audit recommendations as narrowly scoped error-handling changes, prioritizing sensitive output, account consistency, and frontend crash recovery.
+- Add focused failure-path tests for response redaction, persistence failures, malformed responses and CSV input, and script exit codes.
