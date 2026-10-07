@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import accounts
-from core import create_access_token, create_password_reset_token
+from core import create_access_token, create_password_reset_token, users_table
 
 EMAIL = "reset@brasaland.co"
 OLD_PASSWORD = "Sup3rSecret!"
@@ -47,6 +47,25 @@ def test_forgot_password_same_response_for_unknown_email(
     to, url = sent_emails[0]
     assert to == EMAIL
     assert "/reset-password?token=" in url
+
+
+def test_forgot_password_does_not_send_for_inactive_account(
+    client: TestClient, register_and_login, sent_emails
+) -> None:
+    user, _ = register_and_login(email=EMAIL)
+    users_table.update({"is_active": False}, lambda row: row["id"] == user["id"])
+
+    response = client.post("/auth/forgot-password", json={"email": EMAIL})
+
+    assert response.status_code == 200
+    assert response.json()["detail"]
+    assert sent_emails == []
+
+
+def test_forgot_password_rejects_empty_email(client: TestClient) -> None:
+    response = client.post("/auth/forgot-password", json={"email": ""})
+
+    assert response.status_code == 422
 
 
 def test_reset_password_updates_password_and_token_is_single_use(
@@ -103,6 +122,16 @@ def test_reset_password_rejects_invalid_expired_and_access_tokens(
     assert reset(expired) == 400
 
 
+def test_reset_password_rejects_empty_token_and_short_password(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/auth/reset-password", json={"token": "", "new_password": "short"}
+    )
+
+    assert response.status_code == 422
+
+
 def test_reset_token_cannot_be_used_as_access_token(
     client: TestClient, register_and_login, sent_emails
 ) -> None:
@@ -138,3 +167,16 @@ def test_change_password_requires_authentication(client: TestClient) -> None:
         json={"current_password": OLD_PASSWORD, "new_password": NEW_PASSWORD},
     )
     assert response.status_code == 401
+
+
+def test_change_password_rejects_empty_fields(
+    client: TestClient, register_and_login
+) -> None:
+    _, headers = register_and_login(email=EMAIL)
+    response = client.post(
+        "/auth/change-password",
+        headers=headers,
+        json={"current_password": "", "new_password": ""},
+    )
+
+    assert response.status_code == 422

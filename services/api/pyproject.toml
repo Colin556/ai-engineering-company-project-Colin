@@ -20,6 +20,7 @@ seed = "suppliers:run_seed"
 dev = [
     "httpx>=0.28",
     "pytest>=8.3",
+    "pytest-cov>=7.1.0",
 ]
 
 [build-system]

@@ -1,5 +1,9 @@
-database
+accounts
+core
+emails
 incident_analysis
+incident_catalog
+incidents
 main
-seed
+models
 suppliers

@@ -8,3 +8,5 @@ __pycache__/
 *.egg-info/
 services/api/data/test_db.json
 .pytest_cache/
+.coverage
+coverage/
