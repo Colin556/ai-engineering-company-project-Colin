@@ -77,3 +77,41 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
 ### Follow-ups
 - Implement the audit recommendations as narrowly scoped error-handling changes, prioritizing sensitive output, account consistency, and frontend crash recovery.
 - Add focused failure-path tests for response redaction, persistence failures, malformed responses and CSV input, and script exit codes.
+
+
+## 10/12/26
+### Milestone 5.2: Backoffice Inventory Interface Implementation
+- **Environment & Configuration:**
+  - Added `NEXT_PUBLIC_INVENTORY_API_URL=http://localhost:8000` to `.env.local`.
+  - Configured Next.js rewrites in `next.config.ts` mapping `/backoffice/inventory/:path*` to `/inventory/:path*`.
+- **Domain Types & Centralized API Client (`lib/inventory.ts`):**
+  - Added Brasaland ingredient and order types in `lib/types.ts` along with location mappings (1–14 across Colombia and Florida) in `lib/locations.ts`.
+  - Implemented `lib/inventory.ts` centralizing all calls to `/inventory` endpoints (`/inventory/products`, `/inventory/orders/inbound`, `/inventory/orders/outbound`, `/inventory/orders`).
+  - Added bearer token injection from auth storage; auto-clears token and redirects to `/login` on HTTP 401.
+  - Implemented `InventoryApiError` extracting human-readable messages from 4xx/5xx responses, including field-level validation and business rule failures (e.g. insufficient stock).
+- **Products Page (`/inventory/products`):**
+  - Displays all products/ingredients with their computed `current_stock`, SKU, category, unit, and market/country (CO/US).
+  - Applied color-coded stock indicators based on documented operational thresholds: Out of Stock ($\le 0$, critical red), Low Stock ($> 0$ and $\le 15$, amber warning), and Healthy ($> 15$, emerald).
+  - Added quick links on every row to register inbound deliveries or outbound exits with the ingredient preselected.
+  - Included country/market, category, and real-time search filters.
+- **Inbound Order Form (`/inventory/orders/inbound`):**
+  - Form submitting supplier deliveries to `POST /inventory/orders/inbound`.
+  - Ingredient selector listing ingredients by name/SKU/market rather than raw IDs.
+  - Clears form and displays confirmation summary upon success; surfaces visible API error alerts on 400/500 failures.
+- **Outbound Order Form (`/inventory/orders/outbound`):**
+  - Form submitting kitchen consumption and waste exits to `POST /inventory/orders/outbound`.
+  - Reactively fetches and displays available stock when an ingredient is selected before quantity entry.
+  - Client-side UX guard warns the user if requested quantity exceeds available stock.
+  - Displays HTTP 400 insufficient stock error messages inline directly near the quantity field.
+- **Orders History Page (`/inventory/orders`):**
+  - Read-only table displaying all deliveries and exits from `GET /inventory/orders`.
+  - Displays product name, SKU, quantity, type-specific detail (supplier name or exit reason), location, timestamp, and `user_uuid`.
+  - Visual distinction between inbound deliveries (emerald badges) and outbound exits (amber badges) with filtering by type, country, location, and text search.
+- **Route Protection & Navigation:**
+  - All four inventory routes protected by `AuthGuard` redirecting unauthenticated staff to `/login`.
+  - Added `InventoryNav` subnavigation bar and integrated links into the backoffice header and dashboard.
+- **Verification:**
+  - Automated tests in `__tests__/inventory.test.ts` pass (`npm test`: 18 tests passing across 3 test suites).
+  - Next.js production build (`npm run build`) succeeded with 0 errors and prerendered all inventory routes.
+  - Backend FastAPI inventory endpoints verified live with authenticated tokens.
+

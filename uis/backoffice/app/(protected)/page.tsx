@@ -9,8 +9,20 @@ export default function HomePage() {
       </p>
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/incidents"
+          href="/inventory/products"
           className="inline-block rounded-md bg-stone-900 px-4 py-2 text-white hover:bg-stone-700"
+        >
+          Open Inventory &amp; Stock
+        </Link>
+        <Link
+          href="/inventory/orders"
+          className="inline-block rounded-md border border-stone-400 bg-white px-4 py-2 hover:bg-stone-100"
+        >
+          View Order History
+        </Link>
+        <Link
+          href="/incidents"
+          className="inline-block rounded-md border border-stone-400 bg-white px-4 py-2 hover:bg-stone-100"
         >
           Open Incident Manager
         </Link>

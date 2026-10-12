@@ -13,11 +13,14 @@ export default function ProtectedLayout({ children }: LayoutProps<"/">) {
           <Link href="/" className={NAV_LINK}>
             Home
           </Link>
+          <Link href="/inventory/products" className={NAV_LINK}>
+            Inventory
+          </Link>
+          <Link href="/inventory/orders" className={NAV_LINK}>
+            Orders
+          </Link>
           <Link href="/incidents" className={NAV_LINK}>
             Incidents
-          </Link>
-          <Link href="/incidents/new" className={NAV_LINK}>
-            Log incident
           </Link>
           <Link href="/suppliers" className={NAV_LINK}>
             Suppliers

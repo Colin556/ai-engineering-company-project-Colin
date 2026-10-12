@@ -114,3 +114,73 @@ export interface Supplier extends SupplierInput {
   id: number;
   updated_at: string;
 }
+
+export const INGREDIENT_UNITS = ["kg", "litre", "unit"] as const;
+export type IngredientUnit = (typeof INGREDIENT_UNITS)[number];
+
+export const INGREDIENT_CATEGORIES = [
+  "meat",
+  "produce",
+  "sauce",
+  "beverage",
+  "packaging",
+  "cleaning",
+] as const;
+export type IngredientCategory = (typeof INGREDIENT_CATEGORIES)[number];
+
+export const INGREDIENT_COUNTRIES = ["CO", "US"] as const;
+export type IngredientCountry = (typeof INGREDIENT_COUNTRIES)[number];
+
+export const INGREDIENT_EXIT_REASONS = ["consumption", "waste"] as const;
+export type IngredientExitReason = (typeof INGREDIENT_EXIT_REASONS)[number];
+
+export interface Ingredient {
+  id: number;
+  name: string;
+  sku: string;
+  unit: IngredientUnit;
+  category: IngredientCategory;
+  country: IngredientCountry;
+  current_stock: number;
+}
+
+export interface IngredientEntryInput {
+  ingredient_id: number;
+  quantity: number;
+  supplier_name: string;
+  location_id: number;
+}
+
+export interface IngredientExitInput {
+  ingredient_id: number;
+  quantity: number;
+  reason: IngredientExitReason;
+  location_id: number;
+}
+
+export interface IngredientEntryResponse {
+  id: number;
+  ingredient_id: number;
+  quantity: number;
+  location_id: number;
+  created_at: string;
+  user_uuid: string;
+  ingredient: Ingredient;
+  order_type: "inbound";
+  supplier_name: string;
+}
+
+export interface IngredientExitResponse {
+  id: number;
+  ingredient_id: number;
+  quantity: number;
+  location_id: number;
+  created_at: string;
+  user_uuid: string;
+  ingredient: Ingredient;
+  order_type: "outbound";
+  reason: IngredientExitReason;
+}
+
+export type InventoryOrder = IngredientEntryResponse | IngredientExitResponse;
+
