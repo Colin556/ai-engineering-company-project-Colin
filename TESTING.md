@@ -19,6 +19,17 @@ npm test -- --coverage
 
 The API tests use isolated TinyDB tables and a test-only signing key. Frontend tests cover pure/helper logic and use jsdom's browser storage. They do not assert framework serialization or HTTP transport details.
 
+Inventory tests additionally use per-test SQLite databases with foreign keys
+enabled. They override the SQLModel session dependency and clear `DATABASE_URL`
+in the test environment so a developer's Supabase database is never touched.
+Run the focused inventory suite with
+`uv run --project services/api pytest services/api/tests/test_inventory.py -q`.
+SQLite tests do not establish PostgreSQL concurrency behavior. Supply
+`INVENTORY_TEST_DATABASE_URL` for a disposable PostgreSQL database named
+`brasaland_inventory_test` to run the two optional concurrency/FK/enum tests.
+These tests drop inventory tables in that test database; never use a real
+development or production database.
+
 ## Test suites
 
 - `services/api/tests/test_auth.py` covers registration, form login, current-user lookup, token rejection, user access control, and admin actions.
@@ -28,6 +39,7 @@ The API tests use isolated TinyDB tables and a test-only signing key. Frontend t
 - `services/api/tests/test_supplier_edge_cases.py` covers unmatched filters, the smallest positive rate, and missing-supplier mutations.
 - `services/api/tests/test_incidents.py` covers incident validation, list/detail/summary decisions, status transitions, and invalid or missing records.
 - `services/api/tests/test_incident_edge_cases.py` covers terminal incident transitions, missing status, and invalid filters/updates.
+- `services/api/tests/test_inventory.py` covers authenticated inventory routes, computed stock, rejected overdrafts, immutable stock inputs, order attribution, decimal boundaries, database foreign keys, company demo seeds, market/location filters, and constant query counts.
 - `uis/backoffice/__tests__/auth.test.ts` covers stored token reads and expiry/malformed token validation.
 - `uis/backoffice/__tests__/password.test.ts` covers password acceptance and minimum-length, mismatch, and UTF-8 byte-limit rejection.
 

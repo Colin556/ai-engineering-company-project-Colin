@@ -18,7 +18,7 @@ from incident_catalog import (
     INCIDENT_ORIGINS,
     INCIDENT_STATUSES,
 )
-from models import (
+from schemas import (
     IncidentCreate,
     IncidentResponse,
     IncidentStatusUpdate,

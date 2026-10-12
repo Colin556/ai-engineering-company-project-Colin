@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from accounts import get_profile_by_user_id, get_user_by_email
 from core import decode_access_token, users_table
-from models import Role
+from schemas import Role
 
 
 def test_json_login_issues_access_token(client: TestClient, register_and_login) -> None:

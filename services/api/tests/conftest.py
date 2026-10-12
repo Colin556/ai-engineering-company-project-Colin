@@ -13,6 +13,7 @@ os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 os.environ.setdefault("SUPPLIERS_DB_PATH", str(API_DIR / "data" / "test_db.json"))
 # Never send real email from tests, even if a developer's shell exports a key.
 os.environ["RESEND_API_KEY"] = ""
+os.environ["DATABASE_URL"] = ""
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

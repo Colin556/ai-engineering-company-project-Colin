@@ -5,16 +5,19 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
     "libpass[bcrypt]>=1.9",
+    "psycopg2-binary>=2.9.13",
     "pydantic[email]>=2.10",
     "python-dotenv>=1.0",
     "python-jose[cryptography]>=3.3",
     "python-multipart>=0.0.9",
+    "sqlmodel>=0.0.48",
     "tinydb>=4.8",
     "uvicorn[standard]>=0.30",
 ]
 
 [project.scripts]
 seed = "suppliers:run_seed"
+seed-inventory = "seed_inventory:run_seed"
 
 [dependency-groups]
 dev = [
@@ -31,11 +34,17 @@ build-backend = "setuptools.build_meta"
 py-modules = [
     "accounts",
     "core",
+    "database",
     "emails",
     "incident_analysis",
     "incident_catalog",
     "incidents",
     "main",
     "models",
+    "schemas",
+    "seed_inventory",
     "suppliers",
 ]
+
+[tool.setuptools.packages.find]
+include = ["routers*"]

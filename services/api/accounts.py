@@ -31,7 +31,7 @@ from core import (
     verify_password,
 )
 from emails import send_password_reset_email
-from models import (
+from schemas import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,

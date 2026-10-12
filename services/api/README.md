@@ -109,3 +109,127 @@ description. Invalid rows are reported and not inserted.
 
 The last analysis is kept in memory only (no persistence); restarting the
 server clears it.
+
+## Inventory (Milestone 5)
+
+This extends the same FastAPI service, following
+`Context Files/CONTEXT_BackEndDev.md` and `Context Files/CONTEXT05.md`.
+Users, passwords, profiles, and authentication stay in the existing TinyDB
+client in `core.py`. `database.py` initializes that client and a separate
+SQLModel engine for Supabase. Each inventory request gets its own session;
+there is no global session and no relational user table.
+
+### Supabase setup
+
+```bash
+cd services/api
+uv sync
+```
+
+In Supabase, open **Connect**, choose **Transaction pooler**, select **URI**,
+and add the provided PostgreSQL URI as `DATABASE_URL` in your existing `.env`.
+Keep all existing TinyDB/authentication settings unchanged. URL-encode any
+reserved characters in the database password; never commit the URI. The
+engine requires TLS and uses a 10-second connection timeout. Do not use a
+Supabase REST URL or service-role API key as the database URI.
+
+```dotenv
+DATABASE_URL=postgresql://postgres.PROJECT_REF:URL_ENCODED_PASSWORD@POOLER_HOST:6543/postgres
+```
+
+Application startup calls `SQLModel.metadata.create_all(engine)` and fails
+if the PostgreSQL connection is missing or unavailable. This initializes
+new tables, not migrations for previously created tables.
+
+```bash
+uv run uvicorn main:app --reload --port 8000
+```
+
+### Routes and guarantees
+
+All inventory routes require the existing TinyDB bearer token. The company
+context does not specify public inventory reads, so these operational records
+are authenticated by default.
+
+| Route | Behavior |
+| --- | --- |
+| `GET /inventory/products` | Ingredients with computed stock; optional `country=CO` or `US`. |
+| `POST /inventory/products` | Create an ingredient with zero stock; duplicate SKU returns `409`. |
+| `GET /inventory/products/{id}` | Ingredient and computed stock; missing ID returns `404`. |
+| `POST /inventory/orders/inbound` | Delivery: `ingredient_id`, `quantity`, `supplier_name`, `location_id`. |
+| `POST /inventory/orders/outbound` | Exit: `ingredient_id`, `quantity`, `reason`, `location_id`. |
+| `GET /inventory/orders` | Entries and exits with `order_type`, nested `ingredient` data, and `user_uuid`; optional country/location filters. |
+
+`models.py` contains only SQLModel inventory tables; `schemas.py` contains
+the separate Pydantic schemas for inventory and the existing accounts/data.
+Ingredients have unique SKUs and database-level foreign keys from both order
+tables. `country`, `unit`, `category`, and exit `reason` use PostgreSQL enums.
+Locations are integers 1-14, not foreign keys; no country/location mapping is
+enforced because none is specified in the milestone context.
+
+Stock is **per ingredient across all locations**, exactly as specified by the
+context formula, not per location. It is never a stored or editable column.
+Product requests cannot include stock; order requests cannot include a user
+UUID or timestamp. The API supplies the authenticated TinyDB user UUID and
+creation time. There are no update/delete routes for ingredients or orders.
+Invalid fields return `422`. Quantities must be positive and finite, with up
+to six decimal places and 18 total digits; storage uses PostgreSQL NUMERIC
+and responses expose the specified numeric values.
+
+Both order writers lock the ingredient row with `SELECT ... FOR UPDATE` until
+commit. The outbound check uses the latest committed net stock under
+explicit READ COMMITTED isolation; an oversized exit returns
+`400` with the exact context error and is never inserted. Operations must
+write orders through this API, not insert/edit history directly in Supabase.
+Ingredient listing uses one aggregate query. Order listing uses three queries
+regardless of the number of orders, loading ingredient data through joins
+instead of lazy relationship access.
+
+### Demo seed
+
+Register/login with the existing auth routes and take the user's `id` from
+`GET /auth/me`. Then run:
+
+```bash
+uv run seed-inventory --user-uuid EXISTING_TINYDB_USER_UUID
+```
+
+The seeder checks that the user exists and is active, creates all six specified
+ingredients, four deliveries, and three exits (including waste), and commits
+them together. Rerunning skips matching demo records without duplicating them
+or overwriting existing order history. It refuses mismatched existing demo
+ingredients or an exit that would overdraw current stock.
+
+| SKU | Inbound | Outbound | Seeded stock |
+| --- | --- | --- | --- |
+| BRS-BEEF-001 | 80 | 10 | 70 |
+| BRS-PORK-001 | 40 | 5 | 35 |
+| BRS-SAUCE-001 | 20 | 2 | 18 |
+| BRS-SAUCE-002 | 0 | 0 | 0 |
+| BRS-PROD-001 | 0 | 0 | 0 |
+| BRS-PKG-001 | 0 | 0 | 0 |
+
+### Verification
+
+```bash
+uv run pytest tests/test_inventory.py -q
+uv run pytest -q
+```
+
+Inventory tests use an isolated SQLite database with foreign keys enabled
+and never access the developer's Supabase database. They exercise startup,
+all endpoints, stock arithmetic, rejected exits, validation, attribution,
+foreign keys, seed idempotency, filters, and fixed query counts. SQLite does
+not implement PostgreSQL row locks. Two optional tests check simultaneous
+exits and PostgreSQL foreign-key/enum enforcement. Run them against a disposable
+database named `brasaland_inventory_test` only (the tests drop its inventory
+tables afterward):
+
+```bash
+INVENTORY_TEST_DATABASE_URL=postgresql://USER:PASSWORD@localhost:PORT/brasaland_inventory_test \
+  uv run pytest tests/test_inventory.py -k postgres -q
+```
+
+Never point the test variable at a development or production database. These
+checks are skipped when the isolated test URI is not supplied. They do not
+replace checking the actual Supabase connection before the demo.

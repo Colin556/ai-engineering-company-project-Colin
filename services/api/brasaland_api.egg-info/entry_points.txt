@@ -1,2 +1,3 @@
 [console_scripts]
 seed = suppliers:run_seed
+seed-inventory = seed_inventory:run_seed

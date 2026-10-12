@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from accounts import auth_router, get_current_user, profiles_router, users_router
+from database import initialize_inventory
 from incident_analysis import (
     analyze,
     load_records_from_text,
@@ -29,13 +30,15 @@ from incident_analysis import (
     to_export_rows,
 )
 from incidents import router as incidents_router
-from models import UserResponse
+from routers.inventory import router as inventory_router
+from schemas import UserResponse
 from suppliers import router as suppliers_router
 from suppliers import seed_suppliers
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    initialize_inventory()
     seed_suppliers()
     yield
 
@@ -54,6 +57,7 @@ app.include_router(users_router)
 app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
+app.include_router(inventory_router)
 
 
 @app.exception_handler(Exception)

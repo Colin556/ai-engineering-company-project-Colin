@@ -5,7 +5,7 @@ from jose import jwt
 
 from accounts import get_user_by_email
 from core import ALGORITHM, SECRET_KEY, users_table, verify_password
-from models import Role
+from schemas import Role
 
 
 def test_register_creates_hashed_password_and_profile(client: TestClient) -> None:

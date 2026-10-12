@@ -9,7 +9,7 @@ from tinydb import Query as TinyQuery
 
 from accounts import get_current_user
 from core import db_lock, suppliers_table
-from models import (
+from schemas import (
     SupplierCategory,
     SupplierCountry,
     SupplierCreate,
