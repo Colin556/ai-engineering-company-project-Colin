@@ -24,7 +24,7 @@ function inventoryApiBaseUrl(): string {
   const envValue =
     process.env.NEXT_PUBLIC_INVENTORY_API_URL ||
     process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "http://localhost:8000";
+    "/backend";
   return envValue.trim().replace(/\/$/, "");
 }
 

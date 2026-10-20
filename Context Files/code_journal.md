@@ -115,3 +115,24 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
   - Next.js production build (`npm run build`) succeeded with 0 errors and prerendered all inventory routes.
   - Backend FastAPI inventory endpoints verified live with authenticated tokens.
 
+
+  ## 10/19/26
+  ### Milestone 5.3: Monorepo Containerization
+  - Added root Docker Compose services for the public Vite website (port 3000), Next.js backoffice (port 3001), and FastAPI (port 8000), connected on the named `brasaland-platform` network.
+  - Added UI and backend Dockerfiles, Docker ignore files, and startup scripts. The UI image installs the website and backoffice dependencies separately; development mounts source code and keeps dependencies/build output in named volumes. FastAPI runs Uvicorn with `--reload`.
+  - Added root `.env.example` defaults and expanded `.gitignore` for root and nested environment files. Development signing keys are generated into persistent backend data when none is configured; secrets are not committed.
+  - Routed browser API calls through `/backend`, with the frontend proxies targeting the Docker service name `backend:8000`. Kept the website on 3000 and the backoffice on 3001.
+  - Added a local-development SQLite option with foreign-key enforcement; PostgreSQL configuration remains supported, and SQLite is rejected outside development.
+  - Added a pinned backend requirements lock and prepared a production Compose override plus a multi-stage UI image that serves the website with Caddy and runs the backoffice with Next.js.
+
+  ### Verification
+  - `docker compose config --quiet`, startup shell syntax checks, and Docker image builds passed.
+  - `docker compose up -d --wait` started both services and reported the UI and backend healthy. Vite and Next.js logged ready on ports 3000 and 3001; the API health check passed.
+  - A focused SQLite check verified schema initialization, foreign-key enforcement, and PostgreSQL URL normalization. Backend inventory tests passed: 38 passed, 2 skipped.
+  - Verified `.env` and `.env.production` are ignored by Git.
+
+  ### Blockers and Follow-ups
+  - Docker DNS resolved `backend` inside the UI container, but TCP connections to `backend:8000` timed out. Requests to `/backend` through both frontend proxies returned HTTP 500. Investigate Docker bridge/firewall connectivity, then rerun API proxy smoke tests through both UIs.
+  - SSH to the provided VPS (`root@143.244.156.224`) was denied (`Permission denied (publickey,password)`). Production deployment was not completed; configure authorized SSH access and provision production environment variables on the VPS before deploying.
+  - Production Compose configuration and image are prepared but were not validated or deployed. Validate the production build and environment on the VPS after resolving SSH access; do not place production credentials in Git.
+

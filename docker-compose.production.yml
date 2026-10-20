@@ -1,0 +1,20 @@
+services:
+  ui:
+    build:
+      context: ./uis
+      target: production
+    env_file: !override
+      - path: ./.env
+        required: true
+    volumes: !reset []
+    restart: unless-stopped
+
+  backend:
+    env_file: !override
+      - path: ./.env
+        required: true
+    volumes: !override
+      - backend_data:/data
+    ports: !override
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped

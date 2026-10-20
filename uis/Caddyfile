@@ -1,0 +1,14 @@
+{
+    admin off
+    auto_https off
+}
+
+:3000 {
+    handle_path /backend/* {
+        reverse_proxy {$API_INTERNAL_URL}
+    }
+    handle {
+        root * /app/website/dist
+        file_server
+    }
+}

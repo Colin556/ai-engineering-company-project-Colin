@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from urllib.parse import urlsplit
 
 from fastapi import HTTPException
+from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine
 
 from core import db as auth_db
@@ -21,17 +22,30 @@ def postgresql_url(url: str) -> str:
 
 
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+IS_SQLITE = DATABASE_URL.startswith("sqlite:")
+
+if IS_SQLITE and os.getenv("APP_ENV", "development") != "development":
+    raise RuntimeError("SQLite is only supported for local development. Configure PostgreSQL.")
 
 engine = (
     create_engine(
-        postgresql_url(DATABASE_URL),
+        DATABASE_URL if IS_SQLITE else postgresql_url(DATABASE_URL),
         pool_pre_ping=True,
-        isolation_level="READ COMMITTED",
-        connect_args={"sslmode": "require", "connect_timeout": 10},
+        isolation_level="SERIALIZABLE" if IS_SQLITE else "READ COMMITTED",
+        connect_args=(
+            {"check_same_thread": False}
+            if IS_SQLITE
+            else {"sslmode": "require", "connect_timeout": 10}
+        ),
     )
     if DATABASE_URL
     else None
 )
+
+if IS_SQLITE and engine is not None:
+    @event.listens_for(engine, "connect")
+    def enable_foreign_keys(connection, _):
+        connection.execute("PRAGMA foreign_keys=ON")
 
 
 def initialize_inventory() -> None:

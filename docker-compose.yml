@@ -1,0 +1,58 @@
+services:
+  ui:
+    build: ./uis
+    init: true
+    env_file:
+      - path: ./.env.example
+      - path: ./.env
+        required: false
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    volumes:
+      - ./uis:/app
+      - website_dependencies:/app/website/node_modules
+      - backoffice_dependencies:/app/backoffice/node_modules
+      - backoffice_next:/app/backoffice/.next
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - platform
+    healthcheck:
+      test: ["CMD", "node", "-e", "Promise.all([3000,3001].map(p=>fetch('http://127.0.0.1:'+p).then(r=>{if(!r.ok)throw Error(r.status)}))).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      start_period: 90s
+      retries: 5
+
+  backend:
+    build: ./services
+    init: true
+    env_file:
+      - path: ./.env.example
+      - path: ./.env
+        required: false
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services:/app
+      - backend_data:/data
+    networks:
+      - platform
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/openapi.json', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+networks:
+  platform:
+    name: brasaland-platform
+
+volumes:
+  website_dependencies:
+  backoffice_dependencies:
+  backoffice_next:
+  backend_data:
