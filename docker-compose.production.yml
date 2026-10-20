@@ -6,6 +6,9 @@ services:
     env_file: !override
       - path: ./.env
         required: true
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: /backend
+      API_INTERNAL_URL: http://backend:8000
     volumes: !reset []
     restart: unless-stopped
 

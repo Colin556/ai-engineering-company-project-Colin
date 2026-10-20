@@ -136,3 +136,19 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
   - SSH to the provided VPS (`root@143.244.156.224`) was denied (`Permission denied (publickey,password)`). Production deployment was not completed; configure authorized SSH access and provision production environment variables on the VPS before deploying.
   - Production Compose configuration and image are prepared but were not validated or deployed. Validate the production build and environment on the VPS after resolving SSH access; do not place production credentials in Git.
 
+## 10/20/26
+### Session: UI and API Connectivity
+- **Problems encountered:**
+  - Backoffice login requests appeared on port 3001 because the browser called the same-origin `/backend` route. The Next.js proxy returned HTTP 500 because the UI container could resolve `backend` but timed out connecting to `backend:8000`.
+  - Temporarily routing the browser directly to `http://localhost:8000` caused `ERR_CONNECTION_REFUSED`: in the browser, `localhost` refers to the client machine, not the Docker host running the API.
+  - The public website on port 3000 showed a Codespaces 404. Local Vite checks later returned HTTP 200, and the exact forwarded URL also returned HTTP 200 with the website HTML; this appeared to be transient port-forwarding/startup behavior, with no frontend code change needed.
+- **Changes made:**
+  - Restored same-origin browser API requests through `/backend` so clients do not need to connect directly to port 8000.
+  - Made the Next.js rewrite destination configurable with `API_INTERNAL_URL`. Development Compose sets it to `http://host.docker.internal:8000` and maps `host.docker.internal` to the Docker host gateway; production explicitly uses `http://backend:8000`.
+  - Updated the backoffice README to document the browser route and internal proxy destination settings.
+- **Verification:**
+  - Confirmed the UI container can fetch the API through `host.docker.internal:8000` with HTTP 200.
+  - Confirmed `/backend/openapi.json` through port 3001 returns HTTP 200. A credential-free empty POST to `/backend/auth/login` returned HTTP 422 from FastAPI validation, confirming the login route is reachable.
+  - Backoffice Jest tests passed (18 tests), TypeScript check passed, and development and production Compose configurations resolved to their intended API destinations.
+  - Confirmed port 3000 and its supplied Codespaces URL serve the Vite website with HTTP 200.
+
