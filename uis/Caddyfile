@@ -5,7 +5,7 @@
 
 :3000 {
     handle_path /backend/* {
-        reverse_proxy {$API_INTERNAL_URL}
+        reverse_proxy {$VITE_API_INTERNAL_URL}
     }
     handle {
         root * /app/website/dist

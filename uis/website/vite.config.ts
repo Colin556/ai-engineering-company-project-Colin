@@ -12,7 +12,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "/backend": {
-        target: process.env.API_INTERNAL_URL || "http://backend:8000",
+        target: process.env.VITE_API_INTERNAL_URL || "http://backend:8000",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/backend/, ""),
       },

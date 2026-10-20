@@ -1,6 +1,7 @@
 services:
   ui:
     build: ./uis
+    image: ${DOCKER_HUB_USER}/brasaland-web:${VERSION_TAG}
     init: true
     env_file:
       - path: ./.env.example
@@ -28,11 +29,11 @@ services:
 
   backend:
     build: ./services
+    image: ${DOCKER_HUB_USER}/brasaland-api:${VERSION_TAG}
     init: true
     env_file:
-      - path: ./.env.example
-      - path: ./.env
-        required: false
+      - ./services/api/.env
+      - ./.env
     ports:
       - "8000:8000"
     volumes:
@@ -50,6 +51,9 @@ services:
 networks:
   platform:
     name: brasaland-platform
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
 
 volumes:
   website_dependencies:
