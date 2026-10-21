@@ -14,8 +14,8 @@ services:
 
   backend:
     env_file: !override
-      - path: ./.env
-        required: true
+      - ./.env
+      - ./services/api/.env
     volumes: !override
       - backend_data:/data
     ports: !override
