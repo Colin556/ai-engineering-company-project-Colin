@@ -16,40 +16,10 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://brasaland.com" />
+    <link rel="canonical" href="https://brasaland.com/" />
     <link rel="icon" type="image/svg+xml" href="logo-icon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Source+Sans+3:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <script>
-      tailwind = {
-        config: {
-          theme: {
-            extend: {
-              colors: {
-                ember: {
-                  50: "#fff7ed",
-                  100: "#ffedd5",
-                  500: "#f97316",
-                  600: "#ea580c",
-                  800: "#9a3412"
-                },
-                coal: {
-                  900: "#171717"
-                }
-              },
-              fontFamily: {
-                display: ["Barlow Condensed", "sans-serif"],
-                body: ["Source Sans 3", "sans-serif"]
-              }
-            }
-          }
-        }
-      };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="stylesheet" href="./src/styles.css" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -181,7 +151,13 @@
           </div>
           <div class="overflow-hidden rounded-2xl border border-stone-800 bg-stone-900/70 p-2 shadow-2xl sm:p-3">
             <img
-              src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80"
+              src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=768&q=75"
+              srcset="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=75 400w, https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=768&q=75 768w, https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=75 1200w"
+              sizes="(max-width: 767px) calc(100vw - 48px), (max-width: 1279px) 50vw, 576px"
+              width="1200"
+              height="955"
+              fetchpriority="high"
+              decoding="async"
               alt="A Brasaland-style grilled meat platter with roasted vegetables, highlighting the chain's signature flame-grilled menu"
               class="h-full min-h-72 w-full rounded-xl object-cover"
             />
@@ -193,7 +169,13 @@
         <div class="grid gap-8 sm:gap-10 md:grid-cols-2 md:items-center">
           <div class="overflow-hidden rounded-2xl border border-stone-800">
             <img
-              src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80"
+              src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=768&q=75"
+              srcset="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=480&q=75 480w, https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=768&q=75 768w, https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1000&q=75 1000w"
+              sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1279px) 50vw, 576px"
+              width="1000"
+              height="1500"
+              loading="lazy"
+              decoding="async"
               alt="Chefs preparing food over an open grill in a busy Brasaland kitchen, representing speed and consistent quality"
               class="h-full w-full object-cover"
             />

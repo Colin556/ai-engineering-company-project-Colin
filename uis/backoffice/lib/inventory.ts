@@ -137,9 +137,12 @@ async function inventoryJson<T>(path: string, init?: RequestInit): Promise<T> {
 /**
  * Fetch all ingredients (products) with their current computed stock.
  */
-export async function getProducts(country?: IngredientCountry): Promise<Ingredient[]> {
+export async function getProducts(
+  country?: IngredientCountry,
+  signal?: AbortSignal
+): Promise<Ingredient[]> {
   const query = country ? `?country=${encodeURIComponent(country)}` : "";
-  return inventoryJson<Ingredient[]>(`/inventory/products${query}`);
+  return inventoryJson<Ingredient[]>(`/inventory/products${query}`, { signal });
 }
 
 /**

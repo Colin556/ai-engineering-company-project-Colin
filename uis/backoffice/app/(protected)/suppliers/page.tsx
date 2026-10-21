@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import {
   createSupplier,
   listSuppliers,
@@ -14,6 +14,7 @@ import {
   SupplierCountry,
   SupplierInput,
 } from "@/lib/types";
+import { useAsyncList } from "@/lib/useAsyncList";
 
 const COUNTRY_LABELS = { CO: "Colombia", US: "United States" } as const;
 
@@ -25,36 +26,32 @@ const EMPTY_FORM: SupplierInput = {
   status: "active",
 };
 
+function loadSuppliers(key: string, signal: AbortSignal): Promise<Supplier[]> {
+  const [country, category] = key.split("|") as [
+    SupplierCountry | "",
+    SupplierCategory | "",
+  ];
+  return listSuppliers(
+    {
+      country: country || undefined,
+      category: category || undefined,
+    },
+    signal
+  );
+}
+
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [country, setCountry] = useState<SupplierCountry | "">("");
   const [category, setCategory] = useState<SupplierCategory | "">("");
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const {
+    items: suppliers,
+    setItems: setSuppliers,
+    loading,
+    error: loadError,
+  } = useAsyncList(`${country}|${category}`, loadSuppliers, "Could not load suppliers.");
   const [form, setForm] = useState<SupplierInput>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setLoadError(null);
-    listSuppliers(
-      {
-        country: country || undefined,
-        category: category || undefined,
-      },
-      controller.signal
-    )
-      .then(setSuppliers)
-      .catch((error) => {
-        if (error.name !== "AbortError") setLoadError(error.message);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [country, category]);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

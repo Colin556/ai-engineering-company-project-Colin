@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@fontsource/barlow-condensed/latin-500.css";
+@import "@fontsource/barlow-condensed/latin-ext-500.css";
+@import "@fontsource/barlow-condensed/latin-700.css";
+@import "@fontsource/barlow-condensed/latin-ext-700.css";
+@import "@fontsource/source-sans-3/latin-400.css";
+@import "@fontsource/source-sans-3/latin-ext-400.css";
+@import "@fontsource/source-sans-3/latin-500.css";
+@import "@fontsource/source-sans-3/latin-ext-500.css";
+@import "@fontsource/source-sans-3/latin-600.css";
+@import "@fontsource/source-sans-3/latin-ext-600.css";
+@import "@fontsource/source-sans-3/latin-700.css";
+@import "@fontsource/source-sans-3/latin-ext-700.css";
+
+@theme {
+  --color-ember-50: #fff7ed;
+  --color-ember-100: #ffedd5;
+  --color-ember-500: #f97316;
+  --color-ember-600: #ea580c;
+  --color-ember-800: #9a3412;
+  --color-coal-900: #171717;
+  --font-display: "Barlow Condensed", sans-serif;
+  --font-body: "Source Sans 3", sans-serif;
+}

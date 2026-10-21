@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { InventoryNav } from "@/components/InventoryNav";
 import { getProducts } from "@/lib/inventory";
+import { useAsyncList } from "@/lib/useAsyncList";
 import {
   Ingredient,
   IngredientCategory,
@@ -52,38 +53,25 @@ const COUNTRY_NAMES: Record<IngredientCountry, string> = {
   US: "United States (US)",
 };
 
+function loadProducts(
+  country: string,
+  signal: AbortSignal
+): Promise<Ingredient[]> {
+  return getProducts(
+    country ? (country as IngredientCountry) : undefined,
+    signal
+  );
+}
+
 export default function InventoryProductsPage() {
-  const [products, setProducts] = useState<Ingredient[]>([]);
   const [countryFilter, setCountryFilter] = useState<IngredientCountry | "">("");
   const [categoryFilter, setCategoryFilter] = useState<IngredientCategory | "">("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(null);
-
-    getProducts(countryFilter || undefined)
-      .then((data) => {
-        if (active) setProducts(data);
-      })
-      .catch((err) => {
-        if (active) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load ingredients."
-          );
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [countryFilter]);
+  const {
+    items: products,
+    loading,
+    error,
+  } = useAsyncList(countryFilter, loadProducts, "Failed to load ingredients.");
 
   const filteredProducts = products.filter((item) => {
     if (categoryFilter && item.category !== categoryFilter) return false;
