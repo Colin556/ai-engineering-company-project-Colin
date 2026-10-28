@@ -1,0 +1,233 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://brasaland.example/schemas/telemetry-events-v1.json",
+  "title": "Brasaland Telemetry Event Schemas",
+  "description": "Draft-07 schema registry. Validate an event against this root schema; properties are strict allowlists. x-* keywords are registry metadata.",
+  "allOf": [
+    { "$ref": "#/definitions/envelope" },
+    { "$ref": "#/definitions/event_union" }
+  ],
+  "definitions": {
+    "envelope": {
+      "type": "object",
+      "required": ["eventId", "timestamp", "sessionId", "userId", "event_type", "schemaVersion", "requestId", "properties"],
+      "properties": {
+        "eventId": { "type": "string", "format": "uuid", "description": "Unique event identifier; preserve across retries." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Occurrence timestamp in UTC ISO 8601." },
+        "sessionId": { "type": ["string", "null"], "description": "Random short-lived session ID; null without a session." },
+        "userId": { "type": ["string", "null"], "description": "Keyed-HMAC pseudonym of auth subject; null for anonymous or system actor. Never raw identity." },
+        "event_type": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "Stable event taxonomy identifier." },
+        "schemaVersion": { "type": "integer", "minimum": 1, "description": "Version of this event contract." },
+        "requestId": { "type": "string", "minLength": 1, "description": "Cross-tier request correlation ID." },
+        "properties": { "type": "object", "description": "Event-specific payload; each event schema below defines its exact allowlist." }
+      },
+      "additionalProperties": false,
+      "x-containsPII": true,
+      "x-privacy": "userId is pseudonymous personal data, not anonymous. Apply HMAC, access control, and retention policy; sessionId is random."
+    },
+    "event_union": {
+      "oneOf": [
+        { "$ref": "#/definitions/inbound_order_created" },
+        { "$ref": "#/definitions/outbound_order_created" },
+        { "$ref": "#/definitions/stock_waste_registered" },
+        { "$ref": "#/definitions/stock_threshold_triggered" },
+        { "$ref": "#/definitions/direct_stock_edit_rejected" },
+        { "$ref": "#/definitions/ingredient_price_variance_detected" },
+        { "$ref": "#/definitions/auth_login_succeeded" },
+        { "$ref": "#/definitions/auth_login_failed" },
+        { "$ref": "#/definitions/auth_session_expired" },
+        { "$ref": "#/definitions/navigation_section_viewed" },
+        { "$ref": "#/definitions/navigation_flow_abandoned" },
+        { "$ref": "#/definitions/api_request_completed" },
+        { "$ref": "#/definitions/api_request_failed" },
+        { "$ref": "#/definitions/frontend_error_captured" },
+        { "$ref": "#/definitions/web_vital_recorded" },
+        { "$ref": "#/definitions/inventory_validation_failed" },
+        { "$ref": "#/definitions/inventory_product_created" },
+        { "$ref": "#/definitions/supplier_record_updated" },
+        { "$ref": "#/definitions/background_job_failed" },
+        { "$ref": "#/definitions/incident_record_created" }
+      ]
+    },
+    "inbound_order_created": {
+      "description": "A committed inbound ingredient order.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "inbound_order_created" }, "properties": { "type": "object", "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "supplier_id", "unit_cost", "total_cost"], "properties": { "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Receiving location ID." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country." }, "product_id": { "type": "integer", "minimum": 1, "description": "Canonical ingredient/product ID." }, "product_category": { "type": "string", "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Ingredient category from the inventory catalog." }, "quantity": { "type": "number", "exclusiveMinimum": 0, "description": "Received amount in unit." }, "unit": { "type": "string", "enum": ["kg", "litre", "unit"], "description": "Product's inventory unit." }, "currency": { "type": "string", "enum": ["COP", "USD"], "description": "Local location currency; no conversion." }, "supplier_id": { "type": "string", "minLength": 1, "description": "Stable approved supplier identifier; never supplier display name." }, "unit_cost": { "type": "number", "minimum": 0, "description": "Cost per unit in currency." }, "total_cost": { "type": "number", "minimum": 0, "description": "Validated order line total in currency." }, "order_id": { "type": "integer", "minimum": 1, "description": "Committed inbound order ID, if available." } }, "additionalProperties": false } } }],
+      "x-classification": "mandatory",
+      "x-category": "inventory",
+      "x-delivery": "batch; outbox flush within 5 minutes",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Envelope userId is pseudonymous. Supplier is an internal ID. unit_cost and total_cost are local currency."
+    },
+    "outbound_order_created": {
+      "description": "A committed ingredient consumption exit (not waste).",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "outbound_order_created" }, "properties": { "type": "object", "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "reason"], "properties": { "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Location where the ingredient was consumed." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country." }, "product_id": { "type": "integer", "minimum": 1, "description": "Canonical ingredient/product ID." }, "product_category": { "type": "string", "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Ingredient category." }, "quantity": { "type": "number", "exclusiveMinimum": 0, "description": "Consumed amount in unit." }, "unit": { "type": "string", "enum": ["kg", "litre", "unit"], "description": "Product's inventory unit." }, "currency": { "type": "string", "enum": ["COP", "USD"], "description": "Location currency dimension; no conversion." }, "reason": { "type": "string", "const": "consumption", "description": "Consumption only; waste has its own event." }, "order_id": { "type": "integer", "minimum": 1, "description": "Committed outbound order ID, if available." } }, "additionalProperties": false } } }],
+      "x-classification": "mandatory",
+      "x-category": "inventory",
+      "x-delivery": "batch; outbox flush within 5 minutes",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Envelope userId is pseudonymous."
+    },
+    "stock_waste_registered": {
+      "description": "A committed waste exit with a classified cause.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "stock_waste_registered" }, "properties": { "type": "object", "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "reason", "unit_cost", "total_cost"], "properties": { "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Location where waste occurred." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country." }, "product_id": { "type": "integer", "minimum": 1, "description": "Canonical ingredient/product ID." }, "product_category": { "type": "string", "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Ingredient category." }, "quantity": { "type": "number", "exclusiveMinimum": 0, "description": "Wasted amount in unit." }, "unit": { "type": "string", "enum": ["kg", "litre", "unit"], "description": "Product's inventory unit." }, "currency": { "type": "string", "enum": ["COP", "USD"], "description": "Location currency; no conversion." }, "reason": { "type": "string", "enum": ["expired", "kitchen_error", "theft_suspected"], "description": "Required classified waste cause; no free text." }, "unit_cost": { "type": "number", "minimum": 0, "description": "Waste cost per unit in currency, using an approved cost basis." }, "total_cost": { "type": "number", "minimum": 0, "description": "Waste amount valued in currency." }, "order_id": { "type": "integer", "minimum": 1, "description": "Committed outbound order ID, if available." } }, "additionalProperties": false } } }],
+      "x-classification": "mandatory",
+      "x-category": "inventory",
+      "x-delivery": "batch; outbox flush within 5 minutes",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Envelope userId is pseudonymous. Cause is a bounded enum."
+    },
+    "stock_threshold_triggered": {
+      "description": "Stock crosses from at/above the configured minimum to below it.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "stock_threshold_triggered" }, "properties": { "type": "object", "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "minimum_quantity"], "properties": { "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Affected location." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country." }, "product_id": { "type": "integer", "minimum": 1, "description": "Canonical ingredient/product ID." }, "product_category": { "type": "string", "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Ingredient category." }, "quantity": { "type": "number", "description": "Computed stock immediately after crossing, in unit." }, "unit": { "type": "string", "enum": ["kg", "litre", "unit"], "description": "Product's inventory unit." }, "currency": { "type": "string", "enum": ["COP", "USD"], "description": "Required local-currency dimension; no conversion." }, "minimum_quantity": { "type": "number", "minimum": 0, "description": "Configured minimum at occurrence time." } }, "additionalProperties": false } } }],
+      "x-classification": "mandatory",
+      "x-category": "inventory",
+      "x-delivery": "stream",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Envelope userId is pseudonymous."
+    },
+    "direct_stock_edit_rejected": {
+      "description": "A direct stock mutation attempt is rejected; no stock is changed.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "direct_stock_edit_rejected" }, "properties": { "type": "object", "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "rejection_code"], "properties": { "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Target location." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country." }, "product_id": { "type": "integer", "minimum": 1, "description": "Target ingredient/product ID." }, "product_category": { "type": "string", "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Target ingredient category." }, "quantity": { "type": "number", "description": "Attempted absolute stock value or delta; interpretation must be fixed by enforcement boundary." }, "unit": { "type": "string", "enum": ["kg", "litre", "unit"], "description": "Product's inventory unit." }, "currency": { "type": "string", "enum": ["COP", "USD"], "description": "Required location currency dimension; no conversion." }, "rejection_code": { "type": "string", "enum": ["order_required", "forbidden_route", "permission_denied"], "description": "Bounded reason for rejection." } }, "additionalProperties": false } } }],
+      "x-classification": "mandatory",
+      "x-category": "inventory_security",
+      "x-delivery": "stream",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Envelope userId is pseudonymous. Emit only at a real rejection boundary; never create a stock write endpoint."
+    },
+    "ingredient_price_variance_detected": {
+      "description": "An inbound unit cost crosses the configured variance threshold against comparable history.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "ingredient_price_variance_detected" }, "properties": { "type": "object", "required": ["location_id", "country", "product_id", "product_category", "quantity", "unit", "currency", "supplier_id", "unit_cost", "reference_unit_cost", "variance_percent", "threshold_percent"], "properties": { "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Receiving location." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country." }, "product_id": { "type": "integer", "minimum": 1, "description": "Canonical ingredient/product ID." }, "product_category": { "type": "string", "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Ingredient category." }, "quantity": { "type": "number", "exclusiveMinimum": 0, "description": "Inbound amount in unit." }, "unit": { "type": "string", "enum": ["kg", "litre", "unit"], "description": "Comparable product unit." }, "currency": { "type": "string", "enum": ["COP", "USD"], "description": "Local currency; compare only within currency." }, "supplier_id": { "type": "string", "minLength": 1, "description": "Stable supplier ID." }, "unit_cost": { "type": "number", "minimum": 0, "description": "Current inbound unit cost." }, "reference_unit_cost": { "type": "number", "exclusiveMinimum": 0, "description": "Comparable historical unit cost." }, "variance_percent": { "type": "number", "description": "Signed percent difference from reference." }, "threshold_percent": { "type": "number", "exclusiveMinimum": 0, "description": "Configured absolute variance threshold." } }, "additionalProperties": false } } }],
+      "x-classification": "mandatory",
+      "x-category": "inventory",
+      "x-delivery": "stream",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Supplier is a stable internal ID. Costs remain in local currency."
+    },
+    "auth_login_succeeded": {
+      "description": "Authentication succeeded.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "auth_login_succeeded" }, "properties": { "type": "object", "required": ["auth_method", "duration_ms"], "properties": { "auth_method": { "type": "string", "enum": ["password", "sso", "other"], "description": "Bounded authentication method." }, "duration_ms": { "type": "integer", "minimum": 0, "description": "Authentication duration." }, "result": { "type": "string", "const": "success", "description": "Outcome marker." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "authentication",
+      "x-delivery": "batch; 5-minute flush",
+      "x-containsPII": false,
+      "x-privacy": "No identity or credential values in properties; envelope userId is pseudonymous."
+    },
+    "auth_login_failed": {
+      "description": "Authentication failed with a normalized reason.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "auth_login_failed" }, "properties": { "type": "object", "required": ["auth_method", "failure_code"], "properties": { "auth_method": { "type": "string", "enum": ["password", "sso", "other"], "description": "Bounded authentication method." }, "failure_code": { "type": "string", "enum": ["invalid_credentials", "locked", "provider_unavailable", "rate_limited", "other"], "description": "Normalized failure; never submitted identity or password." }, "duration_ms": { "type": "integer", "minimum": 0, "description": "Time to failure." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "authentication_security",
+      "x-delivery": "stream",
+      "x-containsPII": false,
+      "x-privacy": "Never emit attempted username/email, password, token, or provider response body. Envelope userId is null for unauthenticated attempts."
+    },
+    "auth_session_expired": {
+      "description": "An authenticated session expires.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "auth_session_expired" }, "properties": { "type": "object", "required": ["session_age_seconds", "expiry_type"], "properties": { "session_age_seconds": { "type": "integer", "minimum": 0, "description": "Session age when expiry was observed." }, "expiry_type": { "type": "string", "enum": ["idle", "absolute", "revoked_or_invalid"], "description": "Bounded expiry cause." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "authentication",
+      "x-delivery": "batch; 15-minute aggregation",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Envelope userId is pseudonymous; sessionId is random."
+    },
+    "navigation_section_viewed": {
+      "description": "An operator enters an allowlisted backoffice section.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "navigation_section_viewed" }, "properties": { "type": "object", "required": ["section_id"], "properties": { "section_id": { "type": "string", "enum": ["home", "inventory_products", "inventory_orders", "suppliers", "incidents", "account_profile", "account_password"], "description": "Allowlisted route ID; never raw URL." }, "entry_source": { "type": "string", "enum": ["navigation", "direct", "workflow_redirect"], "description": "Bounded navigation origin." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "navigation",
+      "x-delivery": "batch; hourly",
+      "x-containsPII": false,
+      "x-privacy": "No direct PII in properties. Envelope userId is pseudonymous. Debounce same-route duplicate views for 30 seconds per session."
+    },
+    "navigation_flow_abandoned": {
+      "description": "A bounded multi-step workflow is left before completion.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "navigation_flow_abandoned" }, "properties": { "type": "object", "required": ["flow_id", "last_step_id", "step_index"], "properties": { "flow_id": { "type": "string", "enum": ["inbound_order", "outbound_order", "incident_create", "supplier_create"], "description": "Allowlisted workflow identifier." }, "last_step_id": { "type": "string", "pattern": "^[a-z0-9_]{1,40}$", "description": "Allowlisted step code; no form value." }, "step_index": { "type": "integer", "minimum": 0, "description": "Last reached step index." }, "elapsed_seconds": { "type": "integer", "minimum": 0, "description": "Elapsed time since flow start." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "navigation",
+      "x-delivery": "batch; hourly",
+      "x-containsPII": false,
+      "x-privacy": "No form values or free text. Envelope userId is pseudonymous."
+    },
+    "api_request_completed": {
+      "description": "An API request completed and its latency/status were recorded.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "api_request_completed" }, "properties": { "type": "object", "required": ["route_id", "method", "status_code", "duration_ms"], "properties": { "route_id": { "type": "string", "pattern": "^[a-z0-9_./{}-]{1,100}$", "description": "Route template ID, no query string." }, "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"], "description": "HTTP method." }, "status_code": { "type": "integer", "minimum": 100, "maximum": 599, "description": "HTTP response status." }, "duration_ms": { "type": "number", "minimum": 0, "description": "Server-side duration in milliseconds." }, "sample_rate": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "Sampling probability; 1 means retained without sampling." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "api_reliability",
+      "x-delivery": "stream SLO aggregates; sampled batch archive",
+      "x-containsPII": false,
+      "x-privacy": "No URL query, headers, body, IP, or SQL. Envelope userId is pseudonymous."
+    },
+    "api_request_failed": {
+      "description": "An API request failed with a normalized error category.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "api_request_failed" }, "properties": { "type": "object", "required": ["route_id", "method", "status_code", "duration_ms", "error_code"], "properties": { "route_id": { "type": "string", "pattern": "^[a-z0-9_./{}-]{1,100}$", "description": "Route template ID only." }, "method": { "type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"], "description": "HTTP method." }, "status_code": { "type": "integer", "minimum": 400, "maximum": 599, "description": "Failure HTTP status." }, "duration_ms": { "type": "number", "minimum": 0, "description": "Server-side duration in milliseconds." }, "error_code": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$", "description": "Normalized safe error code; not exception text." }, "dependency": { "type": "string", "enum": ["api", "database", "auth", "external", "unknown"], "description": "Bounded failing component." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "api_reliability",
+      "x-delivery": "stream",
+      "x-containsPII": false,
+      "x-privacy": "No response body, exception message, headers, or query parameters. Envelope userId is pseudonymous."
+    },
+    "frontend_error_captured": {
+      "description": "An uncaught or handled fatal frontend error is normalized and captured.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "frontend_error_captured" }, "properties": { "type": "object", "required": ["route_id", "error_code", "release_id"], "properties": { "route_id": { "type": "string", "pattern": "^[a-z0-9_./{}-]{1,100}$", "description": "Allowlisted route ID." }, "error_code": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$", "description": "Normalized error fingerprint; no message or stack." }, "release_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]{1,80}$", "description": "Build/release identifier." }, "fatal": { "type": "boolean", "description": "Whether the failure blocked the current view." }, "device_class": { "type": "string", "enum": ["mobile", "desktop", "tablet", "unknown"], "description": "Coarse device class only." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "frontend_reliability",
+      "x-delivery": "stream",
+      "x-containsPII": false,
+      "x-privacy": "Strip stack paths, URLs, source values, and user text before emission. Envelope userId is pseudonymous."
+    },
+    "web_vital_recorded": {
+      "description": "A finalized real-user web performance metric sample.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "web_vital_recorded" }, "properties": { "type": "object", "required": ["metric_name", "value", "route_id", "device_class"], "properties": { "metric_name": { "type": "string", "enum": ["LCP", "INP", "CLS", "FCP", "TTFB"], "description": "Finalized web vital name." }, "value": { "type": "number", "minimum": 0, "description": "Metric value in the metric's standard unit." }, "route_id": { "type": "string", "pattern": "^[a-z0-9_./{}-]{1,100}$", "description": "Allowlisted route ID." }, "device_class": { "type": "string", "enum": ["mobile", "desktop", "tablet", "unknown"], "description": "Coarse device class." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "frontend_performance",
+      "x-delivery": "batch; hourly",
+      "x-containsPII": false,
+      "x-privacy": "No fingerprint, raw URL, or precise device characteristics. Envelope userId is pseudonymous."
+    },
+    "inventory_validation_failed": {
+      "description": "An inventory workflow rejects a field or business rule before commit.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "inventory_validation_failed" }, "properties": { "type": "object", "required": ["workflow_id", "field_code", "rule_code"], "properties": { "workflow_id": { "type": "string", "enum": ["inbound_order", "outbound_order", "product_create"], "description": "Bounded workflow name." }, "field_code": { "type": "string", "pattern": "^[a-z0-9_]{1,40}$", "description": "Field identifier only; never its value." }, "rule_code": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$", "description": "Normalized validation rule identifier." }, "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Location context if known." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country if known." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "inventory_quality",
+      "x-delivery": "batch; 15-minute aggregation",
+      "x-containsPII": false,
+      "x-privacy": "Never capture entered values, error prose, or employee names. Envelope userId is pseudonymous."
+    },
+    "inventory_product_created": {
+      "description": "A valid ingredient/product is added to the inventory catalog.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "inventory_product_created" }, "properties": { "type": "object", "required": ["product_id", "product_category", "country", "unit"], "properties": { "product_id": { "type": "integer", "minimum": 1, "description": "Canonical ingredient ID." }, "product_category": { "type": "string", "enum": ["meat", "produce", "sauce", "beverage", "packaging", "cleaning"], "description": "Catalog category." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Catalog market." }, "unit": { "type": "string", "enum": ["kg", "litre", "unit"], "description": "Inventory unit." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "inventory_catalog",
+      "x-delivery": "batch; hourly",
+      "x-containsPII": false,
+      "x-privacy": "No product name or free text. Envelope userId is pseudonymous."
+    },
+    "supplier_record_updated": {
+      "description": "An approved supplier record is updated.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "supplier_record_updated" }, "properties": { "type": "object", "required": ["supplier_id", "changed_fields"], "properties": { "supplier_id": { "type": "string", "minLength": 1, "description": "Stable internal supplier ID." }, "changed_fields": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "enum": ["status", "country", "categories", "rate", "coverage"] }, "description": "Names of changed fields only; no old/new value." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Supplier market if applicable." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "supplier_governance",
+      "x-delivery": "batch; hourly",
+      "x-containsPII": false,
+      "x-privacy": "No supplier display name, contact, or free-text values. Envelope userId is pseudonymous."
+    },
+    "background_job_failed": {
+      "description": "A scheduled or asynchronous internal job fails.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "background_job_failed" }, "properties": { "type": "object", "required": ["job_id", "failure_code", "attempt"], "properties": { "job_id": { "type": "string", "enum": ["inventory_import", "threshold_alerts", "weekly_report", "telemetry_delivery"], "description": "Allowlisted job identifier." }, "failure_code": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$", "description": "Normalized failure category; no exception text." }, "attempt": { "type": "integer", "minimum": 1, "description": "Retry attempt number." }, "duration_ms": { "type": "number", "minimum": 0, "description": "Elapsed job duration." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "internal_processing",
+      "x-delivery": "stream",
+      "x-containsPII": false,
+      "x-privacy": "No payload, exception, or record data. System event uses null userId/sessionId."
+    },
+    "incident_record_created": {
+      "description": "An operational incident is recorded with bounded classification only.",
+      "allOf": [{ "$ref": "#/definitions/envelope" }, { "type": "object", "required": ["event_type", "properties"], "properties": { "event_type": { "const": "incident_record_created" }, "properties": { "type": "object", "required": ["incident_id", "category", "severity", "location_id", "country"], "properties": { "incident_id": { "type": "integer", "minimum": 1, "description": "Incident record ID." }, "category": { "type": "string", "pattern": "^[a-z0-9_]{1,40}$", "description": "Approved incident category code." }, "severity": { "type": "string", "enum": ["low", "medium", "high", "critical"], "description": "Bounded severity; no narrative inference." }, "location_id": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Affected location." }, "country": { "type": "string", "enum": ["CO", "US"], "description": "Location country." } }, "additionalProperties": false } } }],
+      "x-classification": "identified_opportunity",
+      "x-category": "operations",
+      "x-delivery": "stream for high/critical; otherwise batch within 15 minutes",
+      "x-containsPII": false,
+      "x-privacy": "No narrative, reporter identity, customer details, or contact data. Envelope userId is pseudonymous."
+    }
+  }
+}
