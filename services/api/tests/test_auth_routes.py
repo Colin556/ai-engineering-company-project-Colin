@@ -1,8 +1,118 @@
+import ast
+from pathlib import Path
+
+import pytest
 from fastapi.testclient import TestClient
 
 from accounts import get_profile_by_user_id, get_user_by_email
-from core import decode_access_token, users_table
+from core import decode_access_token, suppliers_table, users_table
+from main import app
 from schemas import Role
+
+
+def test_every_endpoint_declares_its_response_contract() -> None:
+    api_dir = Path(__file__).resolve().parents[1]
+    declarations = []
+    for source in [api_dir / "main.py", api_dir / "accounts.py", api_dir / "suppliers.py",
+                   api_dir / "incidents.py", *sorted((api_dir / "routers").glob("*.py"))]:
+        tree = ast.parse(source.read_text())
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for decorator in node.decorator_list:
+                if (isinstance(decorator, ast.Call) and isinstance(decorator.func, ast.Attribute)
+                        and decorator.func.attr in {"get", "post", "put", "patch", "delete", "head", "options"}):
+                    assert "response_model" in {keyword.arg for keyword in decorator.keywords}, node.name
+                    declarations.append(node.name)
+    spec = app.openapi()
+    operations = [
+        (path, operation)
+        for path, methods in spec["paths"].items()
+        for method, operation in methods.items()
+        if method in {"get", "post", "put", "patch", "delete", "head", "options"}
+    ]
+    assert len(declarations) == len(operations) == 34
+    for path, operation in operations:
+        responses = operation["responses"]
+        success = responses.get("200", responses.get("201", responses.get("204")))
+        assert success is not None, path
+        if "204" in responses:
+            assert "content" not in success
+        elif not path.endswith("/results/export"):
+            assert success["content"]["application/json"]["schema"], path
+    assert spec["paths"]["/api/incidents"]["post"]["requestBody"]["content"]["application/json"]["schema"]["$ref"].endswith("/IncidentCreate")
+    assert "text/csv" in spec["paths"]["/api/incidents/results/export"]["get"]["responses"]["200"]["content"]
+
+
+def test_auth_and_list_responses_filter_stored_fields(client: TestClient, register_and_login) -> None:
+    user, headers = register_and_login()
+    users_table.update({"internal_token": "private"}, lambda row: row["id"] == user["id"])
+    listed = client.get("/users", headers=headers)
+    assert listed.status_code == 200
+    assert set(listed.json()[0]) == {"id", "role", "is_active"}
+    detail = client.get(f"/users/{user['id']}", headers=headers)
+    assert set(detail.json()) == {"id", "email", "is_active", "role", "created_at"}
+    assert client.get("/auth/me", headers=headers).json()["email"] == "tester@brasaland.co"
+    for path, body in [
+        ("/auth/login/json", {"email": "tester@brasaland.co", "password": "Sup3rSecret!"}),
+        ("/auth/forgot-password", {"email": "unknown@brasaland.co"}),
+        ("/auth/change-password", {"current_password": "Sup3rSecret!", "new_password": "NextSecret123!"}),
+    ]:
+        response = client.post(path, headers=headers, json=body)
+        assert response.status_code == 200
+        assert set(response.json()) <= {"access_token", "token_type", "expires_in", "detail"}
+    suppliers_table.update({"internal_token": "private"})
+    suppliers = client.get("/suppliers")
+    assert suppliers.status_code == 200
+    assert set(suppliers.json()[0]) == {"id", "name", "country", "product_categories", "rate_per_unit", "status"}
+    supplier = client.get(f"/suppliers/{suppliers.json()[0]['id']}")
+    assert supplier.status_code == 200
+    assert "internal_token" not in supplier.json()
+
+
+@pytest.mark.parametrize("schema_name,payload", [
+    ("UserCreate", {"email": "user@brasaland.co", "password": "Sup3rSecret!"}),
+    ("UserUpdate", {}), ("ProfileUpdate", {}),
+    ("LoginRequest", {"email": "user@brasaland.co", "password": "Sup3rSecret!"}),
+    ("ForgotPasswordRequest", {"email": "user@brasaland.co"}),
+    ("ResetPasswordRequest", {"token": "test", "new_password": "Sup3rSecret!"}),
+    ("ChangePasswordRequest", {"current_password": "test", "new_password": "Sup3rSecret!"}),
+    ("SupplierCreate", {"name": "Supplier", "country": "CO", "product_categories": ["meat"], "rate_per_unit": 1, "status": "active"}),
+    ("SupplierRateUpdate", {"rate_per_unit": 1}),
+    ("SupplierStatusUpdate", {"status": "active"}),
+    ("IncidentCreate", {"title": "Test", "description": "Test", "category": "other", "status": "open", "origin": "internal", "branch": "central"}),
+    ("IncidentStatusUpdate", {"status": "open"}),
+])
+def test_write_schemas_reject_server_owned_fields(schema_name, payload) -> None:
+    import schemas
+    from pydantic import ValidationError
+
+    schema = getattr(schemas, schema_name)
+    schema.model_validate(payload)
+    for field in ("id", "hashed_password", "created_at", "user_uuid", "internal_token"):
+        with pytest.raises(ValidationError):
+            schema.model_validate({**payload, field: "forged"})
+
+
+def test_analysis_response_is_aggregate_only(client: TestClient, register_and_login) -> None:
+    _, headers = register_and_login()
+    csv = (
+        "incident_id,customer_id,customer_name,email,category,status,created_at,satisfaction_score,internal_token\n"
+        "1,2,Private Name,private@example.com,technical,closed,2026-10-28,4,secret\n"
+    )
+    response = client.post("/api/incidents/analyze", headers=headers, files={"file": ("incidents.csv", csv, "text/csv")})
+    assert response.status_code == 200
+    assert set(response.json()) == {
+        "total_records", "total_valid", "total_invalid", "invalid_reason_counts",
+        "category_breakdown", "status_breakdown", "closed_with_score_count", "avg_satisfaction_closed",
+    }
+    assert response.json()["avg_satisfaction_closed"] == 4
+    assert "private@example.com" not in response.text and "secret" not in response.text
+    exported = client.get("/api/incidents/results/export", headers=headers)
+    assert exported.status_code == 200
+    assert exported.headers["content-type"].startswith("text/csv")
+    assert exported.text.startswith("metric,value")
+    assert "private@example.com" not in exported.text
 
 
 def test_json_login_issues_access_token(client: TestClient, register_and_login) -> None:
@@ -51,6 +161,18 @@ def test_registration_rejects_empty_required_fields(client: TestClient) -> None:
 
     assert empty_email.status_code == 422
     assert empty_password.status_code == 422
+
+
+@pytest.mark.parametrize("path,payload,private_values", [
+    ("/users", {"email": "not-an-email-private", "password": "shh!"}, ["not-an-email-private", "shh!"]),
+    ("/auth/login/json", {"email": "invalid-private", "password": {"private": "secret"}}, ["invalid-private", "secret"]),
+    ("/auth/reset-password", {"token": "private-token", "new_password": "shh!"}, ["private-token", "shh!"]),
+])
+def test_auth_validation_errors_do_not_echo_credentials(client, path, payload, private_values) -> None:
+    response = client.post(path, json=payload)
+    assert response.status_code == 422
+    assert all(value not in response.text for value in private_values)
+    assert all(set(error) == {"loc", "msg", "type"} for error in response.json()["detail"])
 
 
 def test_authenticated_user_can_list_accounts(client: TestClient, register_and_login) -> None:

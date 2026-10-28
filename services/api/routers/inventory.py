@@ -14,8 +14,10 @@ from schemas import (
     IngredientCountry,
     IngredientCreate,
     IngredientEntryCreate,
+    IngredientEntryListItem,
     IngredientEntryResponse,
     IngredientExitCreate,
+    IngredientExitListItem,
     IngredientExitResponse,
     IngredientResponse,
     UserResponse,
@@ -149,17 +151,16 @@ def create_exit(
     return response
 
 
-@router.get("/orders", response_model=list[IngredientEntryResponse | IngredientExitResponse])
+@router.get("/orders", response_model=list[IngredientEntryListItem | IngredientExitListItem])
 def list_orders(
     country: IngredientCountry | None = None,
     location_id: int | None = Query(default=None, ge=1, le=14),
     session: Session = Depends(get_db),
-) -> list[IngredientEntryResponse | IngredientExitResponse]:
-    stocks = {ingredient.id: stock for ingredient, stock in session.exec(stock_query()).all()}
+) -> list[IngredientEntryListItem | IngredientExitListItem]:
     orders = []
     for order_model, response_model in (
-        (IngredientEntry, IngredientEntryResponse),
-        (IngredientExit, IngredientExitResponse),
+        (IngredientEntry, IngredientEntryListItem),
+        (IngredientExit, IngredientExitListItem),
     ):
         statement = select(order_model, Ingredient).join(Ingredient)
         if country is not None:
@@ -169,6 +170,6 @@ def list_orders(
         for order, ingredient in session.exec(statement).all():
             orders.append(response_model.model_validate({
                 **order.model_dump(),
-                "ingredient": ingredient_response(ingredient, stocks[ingredient.id]),
+                "ingredient": ingredient.model_dump(),
             }))
     return sorted(orders, key=lambda order: (order.created_at, order.order_type, order.id))

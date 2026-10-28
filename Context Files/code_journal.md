@@ -152,3 +152,10 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
   - Backoffice Jest tests passed (18 tests), TypeScript check passed, and development and production Compose configurations resolved to their intended API destinations.
   - Confirmed port 3000 and its supplied Codespaces URL serve the Vite website with HTTP 200.
 
+## 10/28/26
+### Backend Serialization Audit
+- Audited all 34 FastAPI operations and documented original classifications, final response fields, consumer needs, and relationship decisions in `docs/serialization-audit.md`.
+- Added explicit response contracts, strict write schemas, slimmer list payloads, and matching frontend types. Removed email from registration responses and prevented validation errors from echoing credentials. Inventory history now uses two database queries instead of three.
+- Verification: 106 backend tests passed, with 2 PostgreSQL-only tests skipped; TypeScript passed; all 18 frontend tests passed. Five endpoints were exercised through Swagger UI using browser automation and checked for exact response fields.
+- Remaining verification: a human manual Swagger pass and PostgreSQL-specific tests against a disposable test database.
+

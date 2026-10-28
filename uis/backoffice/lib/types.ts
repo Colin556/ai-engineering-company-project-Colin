@@ -43,6 +43,8 @@ export interface Incident extends IncidentInput {
   updated_at: string;
 }
 
+export type IncidentListItem = Omit<Incident, "created_at">;
+
 export interface IncidentOptions {
   categories: IncidentCategory[];
   statuses: IncidentStatus[];
@@ -115,6 +117,8 @@ export interface Supplier extends SupplierInput {
   updated_at: string;
 }
 
+export type SupplierListItem = Omit<Supplier, "updated_at">;
+
 export const INGREDIENT_UNITS = ["kg", "litre", "unit"] as const;
 export type IngredientUnit = (typeof INGREDIENT_UNITS)[number];
 
@@ -182,5 +186,9 @@ export interface IngredientExitResponse {
   reason: IngredientExitReason;
 }
 
-export type InventoryOrder = IngredientEntryResponse | IngredientExitResponse;
+type OrderIngredientSummary = Pick<Ingredient, "name" | "sku" | "unit" | "country">;
+
+export type InventoryOrder =
+  | (Omit<IngredientEntryResponse, "ingredient"> & { ingredient: OrderIngredientSummary })
+  | (Omit<IngredientExitResponse, "ingredient"> & { ingredient: OrderIngredientSummary });
 

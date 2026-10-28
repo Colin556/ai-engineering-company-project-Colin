@@ -39,10 +39,12 @@ from schemas import (
     MessageResponse,
     ProfileResponse,
     ProfileUpdate,
+    RegistrationResponse,
     ResetPasswordRequest,
     Role,
     Token,
     UserCreate,
+    UserListItem,
     UserResponse,
     UserUpdate,
 )
@@ -409,8 +411,8 @@ def change_password(
 users_router = APIRouter(prefix="/users", tags=["users"])
 
 
-@users_router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register_user(payload: UserCreate) -> UserResponse:
+@users_router.post("", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
+def register_user(payload: UserCreate) -> RegistrationResponse:
     """Public registration. New accounts always start with the `user` role."""
     try:
         user = create_user(
@@ -427,14 +429,14 @@ def register_user(payload: UserCreate) -> UserResponse:
             detail="This email is already registered.",
         ) from None
 
-    return UserResponse.model_validate(user)
+    return RegistrationResponse.model_validate(user)
 
 
-@users_router.get("", response_model=list[UserResponse])
+@users_router.get("", response_model=list[UserListItem])
 def list_users(
     _: UserResponse = Depends(get_current_user),
-) -> list[UserResponse]:
-    return [UserResponse.model_validate(user) for user in get_all_users()]
+) -> list[UserListItem]:
+    return [UserListItem.model_validate(user) for user in get_all_users()]
 
 
 @users_router.get("/{user_id}", response_model=UserResponse)
@@ -476,7 +478,7 @@ def update_user(
     return UserResponse.model_validate(user)
 
 
-@users_router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@users_router.delete("/{user_id}", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     user_id: str, current_user: UserResponse = Depends(get_current_user)
 ) -> None:

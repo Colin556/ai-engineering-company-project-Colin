@@ -20,11 +20,12 @@ def test_register_creates_hashed_password_and_profile(client: TestClient) -> Non
     )
     assert response.status_code == 201
     body = response.json()
-    assert body["email"] == "chef@brasaland.co"
+    assert set(body) == {"id", "is_active", "role", "created_at"}
     assert body["role"] == Role.USER
     assert "password" not in body and "hashed_password" not in body
 
     stored = get_user_by_email("chef@brasaland.co")
+    assert stored["email"] == "chef@brasaland.co"
     assert stored["hashed_password"] != "Sup3rSecret!"
     assert verify_password("Sup3rSecret!", stored["hashed_password"])
 

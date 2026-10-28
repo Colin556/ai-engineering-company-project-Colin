@@ -17,7 +17,8 @@ import io
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -30,8 +31,9 @@ from incident_analysis import (
     to_export_rows,
 )
 from incidents import router as incidents_router
+from incidents import validation_message
 from routers.inventory import router as inventory_router
-from schemas import UserResponse
+from schemas import IncidentAnalysisResponse, UserResponse
 from suppliers import router as suppliers_router
 from suppliers import seed_suppliers
 
@@ -60,6 +62,28 @@ app.include_router(incidents_router)
 app.include_router(inventory_router)
 
 
+@app.exception_handler(RequestValidationError)
+async def invalid_request_handler(request: Request, exc: RequestValidationError):
+    incident_write = (
+        request.method == "POST" and request.url.path == "/api/incidents"
+    ) or (
+        request.method == "PATCH"
+        and request.url.path.startswith("/api/incidents/")
+        and request.url.path.endswith("/status")
+    )
+    error = exc.errors()[0]
+    if incident_write and error["loc"][0] == "body":
+        field, message = validation_message({**error, "loc": error["loc"][1:]})
+        return JSONResponse(status_code=400, content={"detail": {"field": field, "message": message}})
+    return JSONResponse(
+        status_code=422,
+        content={"detail": [
+            {"type": error["type"], "loc": list(error["loc"]), "msg": error["msg"]}
+            for error in exc.errors()
+        ]},
+    )
+
+
 @app.exception_handler(Exception)
 async def unexpected_error_handler(_, exc: Exception):
     logging.getLogger(__name__).exception("Unhandled API exception", exc_info=exc)
@@ -72,7 +96,7 @@ async def unexpected_error_handler(_, exc: Exception):
 _last_metrics: dict | None = None
 
 
-@app.post("/api/incidents/analyze")
+@app.post("/api/incidents/analyze", response_model=IncidentAnalysisResponse)
 async def analyze_incidents(
     file: UploadFile = File(...),
     _: UserResponse = Depends(get_current_user),
@@ -101,7 +125,12 @@ async def analyze_incidents(
     return metrics_to_json(metrics)
 
 
-@app.get("/api/incidents/results/export")
+@app.get(
+    "/api/incidents/results/export",
+    response_model=None,
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/csv": {"schema": {"type": "string"}}}}},
+)
 async def export_results(_: UserResponse = Depends(get_current_user)):
     if _last_metrics is None:
         raise HTTPException(

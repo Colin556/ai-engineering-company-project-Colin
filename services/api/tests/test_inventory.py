@@ -81,7 +81,7 @@ def test_order_history_controls_stock(inventory_client, inventory_db, register_a
     orders = inventory_client.get("/inventory/orders", headers=headers).json()
     assert len(orders) == 4
     assert {order["order_type"] for order in orders} == {"inbound", "outbound"}
-    assert all(order["ingredient"]["current_stock"] == 65 for order in orders)
+    assert all(set(order["ingredient"]) == {"name", "sku", "unit", "country"} for order in orders)
     with Session(inventory_db) as session:
         assert len(session.exec(select(IngredientExit)).all()) == 2
     assert "current_stock" not in Ingredient.__table__.columns
@@ -218,7 +218,7 @@ def test_seed_stock_filters_and_constant_query_count(inventory_client, inventory
 
     monkeypatch.setattr(Session, "exec", counted_exec)
     assert len(inventory_client.get("/inventory/orders", headers=headers).json()) == 7
-    assert len(statements) == 3
+    assert len(statements) == 2
     monkeypatch.setattr(Session, "exec", original_exec)
     for quantity in range(1, 11):
         assert inventory_client.post("/inventory/orders/inbound", headers=headers, json={
@@ -228,7 +228,7 @@ def test_seed_stock_filters_and_constant_query_count(inventory_client, inventory
     monkeypatch.setattr(Session, "exec", counted_exec)
     statements.clear()
     assert len(inventory_client.get("/inventory/orders", headers=headers).json()) == 17
-    assert len(statements) == 3
+    assert len(statements) == 2
     statements.clear()
     assert len(inventory_client.get("/inventory/products", headers=headers).json()) == 6
     assert len(statements) == 1

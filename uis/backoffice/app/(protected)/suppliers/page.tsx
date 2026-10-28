@@ -10,6 +10,7 @@ import {
 import {
   SUPPLIER_CATEGORIES,
   Supplier,
+  SupplierListItem,
   SupplierCategory,
   SupplierCountry,
   SupplierInput,
@@ -26,7 +27,7 @@ const EMPTY_FORM: SupplierInput = {
   status: "active",
 };
 
-function loadSuppliers(key: string, signal: AbortSignal): Promise<Supplier[]> {
+function loadSuppliers(key: string, signal: AbortSignal): Promise<SupplierListItem[]> {
   const [country, category] = key.split("|") as [
     SupplierCountry | "",
     SupplierCategory | "",
@@ -260,7 +261,7 @@ function SupplierRow({
   supplier,
   onUpdated,
 }: {
-  supplier: Supplier;
+  supplier: SupplierListItem;
   onUpdated: (supplier: Supplier) => void;
 }) {
   const [rate, setRate] = useState(String(supplier.rate_per_unit));

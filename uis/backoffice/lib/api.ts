@@ -3,6 +3,7 @@ import {
   IncidentAnalysisResult,
   Incident,
   IncidentInput,
+  IncidentListItem,
   IncidentOptions,
   IncidentStatus,
   IncidentSummary,
@@ -14,6 +15,7 @@ import {
   SupplierCategory,
   SupplierCountry,
   SupplierInput,
+  SupplierListItem,
   SupplierStatus,
   TokenResponse,
 } from "@/lib/types";
@@ -216,13 +218,13 @@ export function listIncidents(
     branch?: string;
   },
   signal?: AbortSignal
-): Promise<Incident[]> {
+): Promise<IncidentListItem[]> {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
     if (value) query.set(key, value);
   }
   const suffix = query.size ? `?${query}` : "";
-  return authJson<Incident[]>(`/api/incidents${suffix}`, { signal });
+  return authJson<IncidentListItem[]>(`/api/incidents${suffix}`, { signal });
 }
 
 export function getIncidentSummary(signal?: AbortSignal): Promise<IncidentSummary> {
@@ -253,12 +255,12 @@ export async function downloadResultsCsv(): Promise<void> {
 export function listSuppliers(
   filters: { country?: SupplierCountry; category?: SupplierCategory },
   signal?: AbortSignal
-): Promise<Supplier[]> {
+): Promise<SupplierListItem[]> {
   const query = new URLSearchParams();
   if (filters.country) query.set("country", filters.country);
   if (filters.category) query.set("category", filters.category);
   const suffix = query.size ? `?${query}` : "";
-  return authJson<Supplier[]>(`/suppliers${suffix}`, { signal });
+  return authJson<SupplierListItem[]>(`/suppliers${suffix}`, { signal });
 }
 
 export function createSupplier(input: SupplierInput): Promise<Supplier> {

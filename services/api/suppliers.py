@@ -13,6 +13,7 @@ from schemas import (
     SupplierCategory,
     SupplierCountry,
     SupplierCreate,
+    SupplierListItem,
     SupplierRateUpdate,
     SupplierResponse,
     SupplierStatusUpdate,
@@ -48,16 +49,16 @@ def create_supplier(supplier: SupplierCreate) -> SupplierResponse:
     return serialize_supplier(document, document_id)
 
 
-@router.get("", response_model=list[SupplierResponse])
+@router.get("", response_model=list[SupplierListItem])
 def list_suppliers(
     country: SupplierCountry | None = None,
     category: SupplierCategory | None = Query(default=None),
-) -> list[SupplierResponse]:
+) -> list[SupplierListItem]:
     with db_lock:
         documents = list(suppliers_table.all())
 
     return [
-        serialize_supplier(document, document.doc_id)
+        SupplierListItem.model_validate({**document, "id": document.doc_id})
         for document in documents
         if (country is None or document["country"] == country.value)
         and (
@@ -119,6 +120,7 @@ def update_supplier_status(
 
 @router.delete(
     "/{supplier_id}",
+    response_model=None,
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(get_current_user)],
 )

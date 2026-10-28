@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
 
 from accounts import get_current_user
@@ -20,8 +20,11 @@ from incident_catalog import (
 )
 from schemas import (
     IncidentCreate,
+    IncidentListItem,
+    IncidentOptionsResponse,
     IncidentResponse,
     IncidentStatusUpdate,
+    IncidentSummaryResponse,
     UserResponse,
 )
 
@@ -82,7 +85,7 @@ def validate_payload(payload: dict[str, Any]) -> IncidentCreate:
     return incident
 
 
-@router.get("/options")
+@router.get("/options", response_model=IncidentOptionsResponse)
 def incident_options() -> dict[str, Any]:
     return {
         "categories": INCIDENT_CATEGORIES,
@@ -92,7 +95,7 @@ def incident_options() -> dict[str, Any]:
     }
 
 
-@router.get("/summary")
+@router.get("/summary", response_model=IncidentSummaryResponse)
 def incident_summary() -> dict[str, Any]:
     with db_lock:
         documents = incidents_table.all()
@@ -119,10 +122,10 @@ def incident_summary() -> dict[str, Any]:
 
 @router.post("", response_model=IncidentResponse, status_code=201)
 def create_incident(
-    payload: dict[str, Any] = Body(...),
+    payload: IncidentCreate,
     _: UserResponse = Depends(get_current_user),
 ) -> IncidentResponse:
-    incident = validate_payload(payload)
+    incident = validate_payload(payload.model_dump(mode="json"))
     now = utc_now()
     document = {
         **incident.model_dump(mode="json"),
@@ -134,13 +137,13 @@ def create_incident(
     return serialize_incident(document, document_id)
 
 
-@router.get("")
+@router.get("", response_model=list[IncidentListItem])
 def list_incidents(
     status: str | None = None,
     origin: str | None = None,
     branch: str | None = None,
     category: str | None = None,
-) -> list[IncidentResponse]:
+) -> list[IncidentListItem]:
     filters = {
         "status": (status, INCIDENT_STATUSES),
         "origin": (origin, INCIDENT_ORIGINS),
@@ -160,7 +163,10 @@ def list_incidents(
         if value is not None:
             documents = [document for document in documents if document.get(field) == value]
     documents.sort(key=lambda document: document.get("created_at", ""), reverse=True)
-    return [serialize_incident(document, document.doc_id) for document in documents]
+    return [
+        IncidentListItem.model_validate({**document, "id": document.doc_id})
+        for document in documents
+    ]
 
 
 def get_incident_document(incident_id: int) -> dict[str, Any]:
@@ -211,17 +217,10 @@ def change_incident_status_get(
 @router.patch("/{incident_id}/status", response_model=IncidentResponse)
 def change_incident_status(
     incident_id: int,
-    payload: dict[str, Any] = Body(...),
+    payload: IncidentStatusUpdate,
     _: UserResponse = Depends(get_current_user),
 ) -> IncidentResponse:
-    try:
-        update = IncidentStatusUpdate.model_validate(payload)
-    except ValidationError as error:
-        field, message = validation_message(error.errors()[0])
-        raise HTTPException(
-            status_code=400, detail={"field": field, "message": message}
-        ) from error
-    return update_incident_status(incident_id, update.status.value)
+    return update_incident_status(incident_id, payload.status.value)
 
 
 @router.get("/{incident_id}", response_model=IncidentResponse)

@@ -10,7 +10,7 @@ import {
 } from "@/lib/api";
 import {
   INCIDENT_STATUSES,
-  Incident,
+  IncidentListItem,
   IncidentOptions,
   IncidentOrigin,
   IncidentStatus,
@@ -36,7 +36,7 @@ const NEXT_STATUSES: Record<IncidentStatus, IncidentStatus[]> = {
 };
 
 export default function IncidentsPage() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidents, setIncidents] = useState<IncidentListItem[]>([]);
   const [options, setOptions] = useState<IncidentOptions | null>(null);
   const [summary, setSummary] = useState<IncidentSummary | null>(null);
   const [status, setStatus] = useState<IncidentStatus | "">("");
@@ -95,7 +95,7 @@ export default function IncidentsPage() {
     return () => controller.abort();
   }, [summaryRetry]);
 
-  async function changeStatus(incident: Incident, nextStatus: IncidentStatus) {
+  async function changeStatus(incident: IncidentListItem, nextStatus: IncidentStatus) {
     setUpdateError(null);
     setUpdating((current) => [...current, incident.id]);
     setIncidents((current) =>

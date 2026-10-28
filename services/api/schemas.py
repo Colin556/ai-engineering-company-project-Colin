@@ -12,13 +12,17 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 MAX_PASSWORD_LENGTH = 72
 
 
+class WriteRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
 class Role(StrEnum):
     ADMIN = "admin"
     MANAGER = "manager"
     USER = "user"
 
 
-class UserCreate(BaseModel):
+class UserCreate(WriteRequest):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     email: EmailStr
@@ -28,7 +32,7 @@ class UserCreate(BaseModel):
     address: str | None = Field(default=None, max_length=255)
 
 
-class UserUpdate(BaseModel):
+class UserUpdate(WriteRequest):
     """Credential-only updates. Display/contact data lives on Profile."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -41,15 +45,24 @@ class UserUpdate(BaseModel):
     role: Role | None = None
 
 
-class UserResponse(BaseModel):
+class RegistrationResponse(BaseModel):
     id: str
-    email: EmailStr
     is_active: bool
     role: Role
     created_at: datetime
 
 
-class ProfileUpdate(BaseModel):
+class UserResponse(RegistrationResponse):
+    email: EmailStr
+
+
+class UserListItem(BaseModel):
+    id: str
+    is_active: bool
+    role: Role
+
+
+class ProfileUpdate(WriteRequest):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str | None = Field(default=None, max_length=120)
@@ -65,7 +78,7 @@ class ProfileResponse(BaseModel):
     address: str | None = None
 
 
-class LoginRequest(BaseModel):
+class LoginRequest(WriteRequest):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     email: EmailStr
@@ -78,18 +91,18 @@ class Token(BaseModel):
     expires_in: int
 
 
-class ForgotPasswordRequest(BaseModel):
+class ForgotPasswordRequest(WriteRequest):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     email: EmailStr
 
 
-class ResetPasswordRequest(BaseModel):
+class ResetPasswordRequest(WriteRequest):
     token: str = Field(min_length=1, max_length=2048)
     new_password: str = Field(min_length=8, max_length=MAX_PASSWORD_LENGTH)
 
 
-class ChangePasswordRequest(BaseModel):
+class ChangePasswordRequest(WriteRequest):
     current_password: str = Field(min_length=1, max_length=MAX_PASSWORD_LENGTH)
     new_password: str = Field(min_length=8, max_length=MAX_PASSWORD_LENGTH)
 
@@ -125,7 +138,7 @@ class SupplierCountry(StrEnum):
     UNITED_STATES = "US"
 
 
-class SupplierCreate(BaseModel):
+class SupplierCreate(WriteRequest):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str = Field(min_length=1)
@@ -135,16 +148,30 @@ class SupplierCreate(BaseModel):
     status: SupplierStatus
 
 
-class SupplierResponse(SupplierCreate):
+class SupplierResponse(BaseModel):
     id: int
+    name: str
+    country: SupplierCountry
+    product_categories: list[SupplierCategory]
+    rate_per_unit: float
+    status: SupplierStatus
     updated_at: datetime
 
 
-class SupplierRateUpdate(BaseModel):
+class SupplierListItem(BaseModel):
+    id: int
+    name: str
+    country: SupplierCountry
+    product_categories: list[SupplierCategory]
+    rate_per_unit: float
+    status: SupplierStatus
+
+
+class SupplierRateUpdate(WriteRequest):
     rate_per_unit: float = Field(gt=0)
 
 
-class SupplierStatusUpdate(BaseModel):
+class SupplierStatusUpdate(WriteRequest):
     status: SupplierStatus
 
 
@@ -181,7 +208,40 @@ class IncidentCreate(BaseModel):
 
 
 class IncidentStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     status: IncidentStatus
+
+
+class BranchOption(BaseModel):
+    value: str
+    label: str
+
+
+class IncidentOptionsResponse(BaseModel):
+    categories: list[IncidentCategory]
+    statuses: list[IncidentStatus]
+    origins: list[IncidentOrigin]
+    branches: list[BranchOption]
+
+
+class IncidentSummaryResponse(BaseModel):
+    total: int
+    by_status: dict[IncidentStatus, int]
+    by_category: dict[IncidentCategory, int]
+    by_origin: dict[IncidentOrigin, int]
+    by_branch: dict[str, int]
+
+
+class IncidentAnalysisResponse(BaseModel):
+    total_records: int
+    total_valid: int
+    total_invalid: int
+    invalid_reason_counts: dict[str, int]
+    category_breakdown: dict[IncidentCategory, int]
+    status_breakdown: dict[Literal["open", "closed", "discarded"], int]
+    closed_with_score_count: int
+    avg_satisfaction_closed: float | None = Field(allow_inf_nan=False)
 
 
 class IncidentResponse(BaseModel):
@@ -193,6 +253,17 @@ class IncidentResponse(BaseModel):
     origin: IncidentOrigin
     branch: str
     created_at: datetime
+    updated_at: datetime
+
+
+class IncidentListItem(BaseModel):
+    id: int
+    title: str
+    description: str
+    category: IncidentCategory
+    status: IncidentStatus
+    origin: IncidentOrigin
+    branch: str
     updated_at: datetime
 
 
@@ -231,8 +302,13 @@ class IngredientCreate(BaseModel):
     country: IngredientCountry
 
 
-class IngredientResponse(IngredientCreate):
+class IngredientResponse(BaseModel):
     id: int
+    name: str
+    sku: str
+    unit: IngredientUnit
+    category: IngredientCategory
+    country: IngredientCountry
     current_stock: float
 
 
@@ -252,7 +328,7 @@ class IngredientExitCreate(IngredientOrderCreate):
     reason: IngredientExitReason
 
 
-class IngredientOrderResponse(BaseModel):
+class IngredientOrderFields(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -261,6 +337,9 @@ class IngredientOrderResponse(BaseModel):
     location_id: int
     created_at: datetime
     user_uuid: str
+
+
+class IngredientOrderResponse(IngredientOrderFields):
     ingredient: IngredientResponse
 
 
@@ -270,5 +349,24 @@ class IngredientEntryResponse(IngredientOrderResponse):
 
 
 class IngredientExitResponse(IngredientOrderResponse):
+    order_type: Literal["outbound"] = "outbound"
+    reason: IngredientExitReason
+
+
+class OrderIngredientSummary(BaseModel):
+    name: str
+    sku: str
+    unit: IngredientUnit
+    country: IngredientCountry
+
+
+class IngredientEntryListItem(IngredientOrderFields):
+    ingredient: OrderIngredientSummary
+    order_type: Literal["inbound"] = "inbound"
+    supplier_name: str
+
+
+class IngredientExitListItem(IngredientOrderFields):
+    ingredient: OrderIngredientSummary
     order_type: Literal["outbound"] = "outbound"
     reason: IngredientExitReason
