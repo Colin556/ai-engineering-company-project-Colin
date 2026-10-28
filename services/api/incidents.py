@@ -9,6 +9,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
 
+from response_cache import incident_summary_cache
+
 from accounts import get_current_user
 from core import db_lock, incidents_table
 from incident_catalog import (
@@ -97,6 +99,10 @@ def incident_options() -> dict[str, Any]:
 
 @router.get("/summary", response_model=IncidentSummaryResponse)
 def incident_summary() -> dict[str, Any]:
+    return incident_summary_cache.get_or_load("summary", build_incident_summary)
+
+
+def build_incident_summary() -> dict[str, Any]:
     with db_lock:
         documents = incidents_table.all()
 
@@ -134,6 +140,7 @@ def create_incident(
     }
     with db_lock:
         document_id = incidents_table.insert(document)
+        incident_summary_cache.invalidate()
     return serialize_incident(document, document_id)
 
 
@@ -197,6 +204,7 @@ def update_incident_status(incident_id: int, requested_status: str) -> IncidentR
     with db_lock:
         incidents_table.update(changes, doc_ids=[incident_id])
         updated = incidents_table.get(doc_id=incident_id)
+        incident_summary_cache.invalidate()
     return serialize_incident(updated, incident_id)
 
 

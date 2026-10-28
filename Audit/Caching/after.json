@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-28T12:49:55.151637+00:00",
+  "environment": "local TestClient, SQLite + TinyDB",
+  "cache_enabled": true,
+  "stages": {
+    "small": {
+      "rows": {
+        "incidents": 20,
+        "suppliers": 9,
+        "products": 6,
+        "orders": 60,
+        "users": 10
+      },
+      "endpoints": [
+        {
+          "path": "/api/incidents/options",
+          "requests": 15,
+          "cold_ms": 28.589,
+          "median_ms": 1.593,
+          "p95_ms": 3.432,
+          "min_ms": 1.497,
+          "max_ms": 3.432,
+          "server_median_ms": 0.616,
+          "payload_bytes": 1040,
+          "payload_sha256": "6568752f61900ecea644a425cfc9a1a4e92b4ae12102f5834a3d88a5c5c7a28e"
+        },
+        {
+          "path": "/api/incidents/summary",
+          "requests": 15,
+          "cold_ms": 2.176,
+          "median_ms": 1.58,
+          "p95_ms": 3.873,
+          "min_ms": 1.529,
+          "max_ms": 3.873,
+          "server_median_ms": 0.632,
+          "payload_bytes": 487,
+          "payload_sha256": "a91f16d369a73d81694562aff9aef0076034119ac56a0835159afd404e9dd27f"
+        },
+        {
+          "path": "/api/incidents?status=open&category=technical",
+          "requests": 15,
+          "cold_ms": 2.496,
+          "median_ms": 2.355,
+          "p95_ms": 6.33,
+          "min_ms": 1.893,
+          "max_ms": 6.33,
+          "server_median_ms": 1.246,
+          "payload_bytes": 263,
+          "payload_sha256": "065583caadf369223f5a86a94dd9f362b42a1b4f60d161be45d7acd106039469"
+        },
+        {
+          "path": "/suppliers",
+          "requests": 15,
+          "cold_ms": 3.229,
+          "median_ms": 2.007,
+          "p95_ms": 2.342,
+          "min_ms": 1.8,
+          "max_ms": 2.342,
+          "server_median_ms": 0.934,
+          "payload_bytes": 1125,
+          "payload_sha256": "787506fe723f85ed19246b15e519b9c9a5c499d96a67f7fc463cffe28722dfd2"
+        },
+        {
+          "path": "/suppliers?country=CO&category=meat",
+          "requests": 15,
+          "cold_ms": 2.365,
+          "median_ms": 2.004,
+          "p95_ms": 18.332,
+          "min_ms": 1.815,
+          "max_ms": 18.332,
+          "server_median_ms": 0.866,
+          "payload_bytes": 125,
+          "payload_sha256": "28d0d222a0b0b1f1f64085fa7f40c1ecabe4e26f025c4fc6ba195d08a1963770"
+        },
+        {
+          "path": "/inventory/products?country=CO",
+          "requests": 15,
+          "cold_ms": 50.564,
+          "median_ms": 4.043,
+          "p95_ms": 12.239,
+          "min_ms": 3.834,
+          "max_ms": 12.239,
+          "server_median_ms": 2.834,
+          "payload_bytes": 557,
+          "payload_sha256": "07bc0e839481914c6819c648a132cf9e861414288f53004171e1c994296db0dd"
+        },
+        {
+          "path": "/inventory/orders?country=CO&location_id=2",
+          "requests": 15,
+          "cold_ms": 7.633,
+          "median_ms": 3.79,
+          "p95_ms": 5.555,
+          "min_ms": 3.732,
+          "max_ms": 5.555,
+          "server_median_ms": 2.609,
+          "payload_bytes": 1211,
+          "payload_sha256": "6eccdbcd242e15b984f9b6b23bf58c9e23a30c3b341bbdfc13b91e19f163a2a0"
+        },
+        {
+          "path": "/users",
+          "requests": 15,
+          "cold_ms": 2.724,
+          "median_ms": 2.311,
+          "p95_ms": 4.123,
+          "min_ms": 2.268,
+          "max_ms": 4.123,
+          "server_median_ms": 1.358,
+          "payload_bytes": 771,
+          "payload_sha256": "f5976ee3c449c3f882372aeedc20357e000c9365d04c3fead626aa14ec4da13e"
+        }
+      ]
+    },
+    "large": {
+      "rows": {
+        "incidents": 20000,
+        "suppliers": 1203,
+        "products": 600,
+        "orders": 12000,
+        "users": 10
+      },
+      "endpoints": [
+        {
+          "path": "/api/incidents/options",
+          "requests": 15,
+          "cold_ms": 2.296,
+          "median_ms": 1.528,
+          "p95_ms": 1.607,
+          "min_ms": 1.474,
+          "max_ms": 1.607,
+          "server_median_ms": 0.575,
+          "payload_bytes": 1040,
+          "payload_sha256": "6568752f61900ecea644a425cfc9a1a4e92b4ae12102f5834a3d88a5c5c7a28e"
+        },
+        {
+          "path": "/api/incidents/summary",
+          "requests": 15,
+          "cold_ms": 101.755,
+          "median_ms": 1.569,
+          "p95_ms": 2.483,
+          "min_ms": 1.535,
+          "max_ms": 2.483,
+          "server_median_ms": 0.614,
+          "payload_bytes": 567,
+          "payload_sha256": "2406422cdabfba9ecb171dc44055f1e88347b4775879ccb65e28e7f1b0c96773"
+        },
+        {
+          "path": "/api/incidents?status=open&category=technical",
+          "requests": 15,
+          "cold_ms": 114.399,
+          "median_ms": 119.952,
+          "p95_ms": 223.778,
+          "min_ms": 108.23,
+          "max_ms": 223.778,
+          "server_median_ms": 118.532,
+          "payload_bytes": 269669,
+          "payload_sha256": "14793be9809965df68e790dd04e70ec68fc822d0aa198a315484fbab89fa022a"
+        },
+        {
+          "path": "/suppliers",
+          "requests": 15,
+          "cold_ms": 77.875,
+          "median_ms": 10.383,
+          "p95_ms": 11.901,
+          "min_ms": 10.172,
+          "max_ms": 11.901,
+          "server_median_ms": 9.311,
+          "payload_bytes": 155126,
+          "payload_sha256": "96e76cb8c321a0cfdd7591ca5a43512309203f1f2979107bec69df95e4fb7293"
+        },
+        {
+          "path": "/suppliers?country=CO&category=meat",
+          "requests": 15,
+          "cold_ms": 46.673,
+          "median_ms": 2.622,
+          "p95_ms": 2.849,
+          "min_ms": 2.576,
+          "max_ms": 2.849,
+          "server_median_ms": 1.665,
+          "payload_bytes": 16916,
+          "payload_sha256": "5b6d04e174cfbec483aad163205a66e3fcaf55620224a3f209d7791eeab55aae"
+        },
+        {
+          "path": "/inventory/products?country=CO",
+          "requests": 15,
+          "cold_ms": 98.454,
+          "median_ms": 112.474,
+          "p95_ms": 190.141,
+          "min_ms": 96.465,
+          "max_ms": 190.141,
+          "server_median_ms": 110.476,
+          "payload_bytes": 55669,
+          "payload_sha256": "adff31bdc5c93f46588a0a246b19f94f514f2ae308b881d2757b38fd0eebd5a2"
+        },
+        {
+          "path": "/inventory/orders?country=CO&location_id=2",
+          "requests": 15,
+          "cold_ms": 135.796,
+          "median_ms": 109.705,
+          "p95_ms": 225.896,
+          "min_ms": 105.998,
+          "max_ms": 225.896,
+          "server_median_ms": 108.253,
+          "payload_bytes": 175021,
+          "payload_sha256": "31c37e284ba783dcaba9d7bd42351be6cc7ac99235ab5632740742f3ae7958fe"
+        },
+        {
+          "path": "/users",
+          "requests": 15,
+          "cold_ms": 193.423,
+          "median_ms": 131.657,
+          "p95_ms": 183.389,
+          "min_ms": 123.758,
+          "max_ms": 183.389,
+          "server_median_ms": 130.462,
+          "payload_bytes": 771,
+          "payload_sha256": "f5976ee3c449c3f882372aeedc20357e000c9365d04c3fead626aa14ec4da13e"
+        }
+      ]
+    }
+  }
+}

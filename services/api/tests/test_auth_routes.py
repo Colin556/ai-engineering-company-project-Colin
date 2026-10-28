@@ -1,4 +1,5 @@
 import ast
+import logging
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,19 @@ from accounts import get_profile_by_user_id, get_user_by_email
 from core import decode_access_token, suppliers_table, users_table
 from main import app
 from schemas import Role
+
+
+def test_request_timing_does_not_log_query_values(client, caplog) -> None:
+    with caplog.at_level(logging.INFO, logger="uvicorn.error.timing"):
+        response = client.get("/suppliers?private_token=do-not-log-this")
+        missing = client.get("/private-value-do-not-log")
+    assert response.status_code == 200
+    assert float(response.headers["Server-Timing"].split("=")[1]) >= 0
+    assert missing.status_code == 404
+    messages = [record.message for record in caplog.records if record.name == "uvicorn.error.timing"]
+    assert any("GET /suppliers status=200 duration_ms=" in message for message in messages)
+    assert any("<unmatched> status=404" in message for message in messages)
+    assert all("do-not-log" not in message and "private_token" not in message for message in messages)
 
 
 def test_every_endpoint_declares_its_response_contract() -> None:

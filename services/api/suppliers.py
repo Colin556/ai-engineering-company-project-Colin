@@ -9,6 +9,7 @@ from tinydb import Query as TinyQuery
 
 from accounts import get_current_user
 from core import db_lock, suppliers_table
+from response_cache import supplier_list_cache
 from schemas import (
     SupplierCategory,
     SupplierCountry,
@@ -46,6 +47,7 @@ def create_supplier(supplier: SupplierCreate) -> SupplierResponse:
     }
     with db_lock:
         document_id = suppliers_table.insert(document)
+        supplier_list_cache.invalidate()
     return serialize_supplier(document, document_id)
 
 
@@ -53,6 +55,14 @@ def create_supplier(supplier: SupplierCreate) -> SupplierResponse:
 def list_suppliers(
     country: SupplierCountry | None = None,
     category: SupplierCategory | None = Query(default=None),
+) -> list[SupplierListItem]:
+    return supplier_list_cache.get_or_load(
+        (country, category), lambda: load_supplier_list(country, category)
+    )
+
+
+def load_supplier_list(
+    country: SupplierCountry | None, category: SupplierCategory | None,
 ) -> list[SupplierListItem]:
     with db_lock:
         documents = list(suppliers_table.all())
@@ -98,6 +108,7 @@ def update_supplier_rate(
     with db_lock:
         suppliers_table.update(changes, doc_ids=[supplier_id])
         document = suppliers_table.get(doc_id=supplier_id)
+        supplier_list_cache.invalidate()
     return serialize_supplier(document, supplier_id)
 
 
@@ -115,6 +126,7 @@ def update_supplier_status(
             {"status": update.status.value}, doc_ids=[supplier_id]
         )
         document = suppliers_table.get(doc_id=supplier_id)
+        supplier_list_cache.invalidate()
     return serialize_supplier(document, supplier_id)
 
 
@@ -128,6 +140,7 @@ def delete_supplier(supplier_id: int) -> None:
     get_supplier_or_404(supplier_id)
     with db_lock:
         suppliers_table.remove(doc_ids=[supplier_id])
+        supplier_list_cache.invalidate()
 
 
 # ---------- Seed data ----------
@@ -172,6 +185,8 @@ def seed_suppliers() -> int:
                 }
             )
             inserted += 1
+        if inserted:
+            supplier_list_cache.invalidate()
 
     return inserted
 

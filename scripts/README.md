@@ -9,4 +9,10 @@ The incident CSV tools are documented in [INCIDENT_ANALYZER.md](./INCIDENT_ANALY
 Run `python3 scripts/seed_incidents.py` to idempotently seed historical customer
 incidents into the backoffice API's TinyDB store.
 
+Caching measurements and safe synthetic data generation are documented in
+[CACHING_REPORT.md](../CACHING_REPORT.md). `profile_caching.py` benchmarks small
+and large temporary datasets without opening application databases;
+`profile_frontend_caching.cjs` measures supplier draft-edit React commits using
+Playwright and a development/profiling build.
+
 > _Spanish version: [README.es.md](./README.es.md)._

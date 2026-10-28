@@ -50,28 +50,12 @@ export default function SuppliersPage() {
     loading,
     error: loadError,
   } = useAsyncList(`${country}|${category}`, loadSuppliers, "Could not load suppliers.");
-  const [form, setForm] = useState<SupplierInput>(EMPTY_FORM);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  async function handleCreate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitting(true);
-    setFormError(null);
-    try {
-      const created = await createSupplier(form);
-      const matchesFilters =
-        (!country || created.country === country) &&
-        (!category || created.product_categories.includes(category));
-      if (matchesFilters) setSuppliers((current) => [...current, created]);
-      setForm(EMPTY_FORM);
-    } catch (error) {
-      setFormError(
-        error instanceof Error ? error.message : "Could not register supplier."
-      );
-    } finally {
-      setSubmitting(false);
-    }
+  function addSupplier(created: Supplier) {
+    const matchesFilters =
+      (!country || created.country === country) &&
+      (!category || created.product_categories.includes(category));
+    if (matchesFilters) setSuppliers((current) => [...current, created]);
   }
 
   function replaceSupplier(updated: Supplier) {
@@ -80,15 +64,6 @@ export default function SuppliersPage() {
         supplier.id === updated.id ? updated : supplier
       )
     );
-  }
-
-  function toggleCategory(value: SupplierCategory) {
-    setForm((current) => ({
-      ...current,
-      product_categories: current.product_categories.includes(value)
-        ? current.product_categories.filter((category) => category !== value)
-        : [...current.product_categories, value],
-    }));
   }
 
   return (
@@ -174,6 +149,43 @@ export default function SuppliersPage() {
         </table>
       </section>
 
+      <SupplierRegistrationForm onCreated={addSupplier} />
+    </div>
+  );
+}
+
+function SupplierRegistrationForm({ onCreated }: { onCreated: (supplier: Supplier) => void }) {
+  const [form, setForm] = useState<SupplierInput>(EMPTY_FORM);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      const created = await createSupplier(form);
+      onCreated(created);
+      setForm(EMPTY_FORM);
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Could not register supplier."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function toggleCategory(value: SupplierCategory) {
+    setForm((current) => ({
+      ...current,
+      product_categories: current.product_categories.includes(value)
+        ? current.product_categories.filter((category) => category !== value)
+        : [...current.product_categories, value],
+    }));
+  }
+
+  return (
       <section className="border-t-4 border-amber-600 bg-white p-5">
         <h2 className="text-xl font-semibold">Register supplier</h2>
         <form onSubmit={handleCreate} className="mt-5 grid gap-5">
@@ -253,7 +265,6 @@ export default function SuppliersPage() {
           </button>
         </form>
       </section>
-    </div>
   );
 }
 

@@ -26,6 +26,7 @@ from core import (  # noqa: E402
     users_table,
 )
 from main import app  # noqa: E402
+from response_cache import incident_summary_cache, supplier_list_cache
 from suppliers import seed_suppliers  # noqa: E402
 
 
@@ -36,6 +37,8 @@ def client() -> TestClient:
 
 @pytest.fixture(autouse=True)
 def reset_database():
+    incident_summary_cache.invalidate()
+    supplier_list_cache.invalidate()
     tables = (
         suppliers_table,
         users_table,

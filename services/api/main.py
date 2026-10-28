@@ -15,6 +15,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from time import perf_counter
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
@@ -60,6 +61,23 @@ app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(inventory_router)
+
+
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next):
+    started = perf_counter()
+    status_code = 500
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        response.headers["Server-Timing"] = f"app;dur={(perf_counter() - started) * 1000:.3f}"
+        return response
+    finally:
+        route = getattr(request.scope.get("route"), "path", "<unmatched>")
+        logging.getLogger("uvicorn.error.timing").info(
+            "%s %s status=%s duration_ms=%.3f",
+            request.method, route, status_code, (perf_counter() - started) * 1000,
+        )
 
 
 @app.exception_handler(RequestValidationError)

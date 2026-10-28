@@ -159,3 +159,9 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
 - Verification: 106 backend tests passed, with 2 PostgreSQL-only tests skipped; TypeScript passed; all 18 frontend tests passed. Five endpoints were exercised through Swagger UI using browser automation and checked for exact response fields.
 - Remaining verification: a human manual Swagger pass and PostgreSQL-specific tests against a disposable test database.
 
+### Performance Optimization: Caching
+- Added safe request-timing logs and reproducible profiling scripts using isolated synthetic databases. Recorded caching decisions, TTLs, invalidation rules, and measurements in `CACHING_REPORT.md`.
+- Implemented bounded, worker-local caches for incident summaries (15-second TTL) and supplier lists (30-second TTL), with immediate invalidation on relevant writes. Stock and authentication remain uncached.
+- Local large-dataset medians improved from 81.8 to 1.6 ms for summaries and 48.3 to 10.4 ms for supplier lists. Isolating supplier form state reduced measured React render time from 969 to 5.1 ms and eliminated unchanged table-row renders during draft edits.
+- Verification: 113 backend tests passed, with 2 PostgreSQL-only tests skipped; TypeScript and all 18 frontend tests passed. Browser checks confirmed supplier creation and inline updates still work. Production performance validation remains pending.
+

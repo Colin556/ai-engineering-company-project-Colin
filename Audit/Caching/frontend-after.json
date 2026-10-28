@@ -1,0 +1,57 @@
+{
+  "url": "http://localhost:3001/suppliers",
+  "browser": "156.0.8078.4",
+  "conditions": "development React profiling, 1440x1000, 4x CPU, unthrottled loopback network, authenticated, loaded table",
+  "rows": 1203,
+  "interactions": [
+    {
+      "elapsedMs": 399.10000000009313,
+      "commits": [
+        {
+          "durationMs": 5.399999999906868,
+          "rowsRendered": 0
+        }
+      ]
+    },
+    {
+      "elapsedMs": 278,
+      "commits": [
+        {
+          "durationMs": 5.699999999720603,
+          "rowsRendered": 0
+        }
+      ]
+    },
+    {
+      "elapsedMs": 321,
+      "commits": [
+        {
+          "durationMs": 5.100000000093132,
+          "rowsRendered": 0
+        }
+      ]
+    },
+    {
+      "elapsedMs": 256.10000000009313,
+      "commits": [
+        {
+          "durationMs": 4.899999999906868,
+          "rowsRendered": 0
+        }
+      ]
+    },
+    {
+      "elapsedMs": 247.29999999981374,
+      "commits": [
+        {
+          "durationMs": 4.100000000093132,
+          "rowsRendered": 0
+        }
+      ]
+    }
+  ],
+  "apiRequestsDuringEditing": 0,
+  "medianInteractionMs": 278,
+  "medianRenderMs": 5.100000000093132,
+  "medianSupplierRowsRendered": 0
+}
