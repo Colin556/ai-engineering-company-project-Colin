@@ -165,3 +165,11 @@ Close the loop on AUTH-01: the API now returns 401 on protected routes, so the N
 - Local large-dataset medians improved from 81.8 to 1.6 ms for summaries and 48.3 to 10.4 ms for supplier lists. Isolating supplier form state reduced measured React render time from 969 to 5.1 ms and eliminated unchanged table-row renders during draft edits.
 - Verification: 113 backend tests passed, with 2 PostgreSQL-only tests skipped; TypeScript and all 18 frontend tests passed. Browser checks confirmed supplier creation and inline updates still work. Production performance validation remains pending.
 
+## 2026-11-02
+### Telemetry: Frontend Capture
+- Implemented the approved Brasaland contract through a schema-validating, non-persisting FastAPI batch receiver and a centralized frontend `track()` service: ten-second/20-event batching, bounded exponential retries, capture-time metadata, HMAC user pseudonyms, and hidden-tab beacon flushing.
+- Instrumented 17 catalogue events, including all six mandatory metrics, authentication, navigation, API reliability, uncaught errors, Web Vitals, validation failures, and supplier updates. Extended inventory sources with supplier IDs, costs, classified waste causes, location controls, price-history checks, and a rejecting stock-edit boundary.
+- Fixed cross-origin unload preflights by sending JSON beacon bodies with a safelisted content type. Updated Docker schema packaging and endpoint configuration; documented coverage and setup in `docs/TELEMETRY_CAPTURE.md`.
+- Verification: 125 backend tests and 30 frontend tests passed; production build and Compose configuration passed. Chromium observed 51 events across seven batches, all returning HTTP 200, including every mandatory event; beacon delivery and desktop/mobile controls were checked. Two PostgreSQL-only tests were skipped.
+- Follow-ups: configure the endpoint and backend HMAC key, apply the inventory migration to existing databases, and add Phase 3 persistence/outbox delivery. The editor blocked updating the local environment file. Product-creation UI, incident classification, and internal-job events remain deferred. No commit or merge was performed.
+

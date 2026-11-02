@@ -1,6 +1,11 @@
 services:
   ui:
-    build: ./uis
+    build:
+      context: .
+      dockerfile: uis/Dockerfile
+      args:
+        NEXT_PUBLIC_TELEMETRY_ENDPOINT: ${NEXT_PUBLIC_TELEMETRY_ENDPOINT:-/backend/telemetry/events}
+        NEXT_PUBLIC_RELEASE_ID: ${VERSION_TAG:-development}
     image: ${DOCKER_HUB_USER}/brasaland-web:${VERSION_TAG}
     init: true
     env_file:
@@ -9,6 +14,7 @@ services:
         required: false
     environment:
       NEXT_PUBLIC_API_BASE_URL: /backend
+      NEXT_PUBLIC_TELEMETRY_ENDPOINT: ${NEXT_PUBLIC_TELEMETRY_ENDPOINT:-/backend/telemetry/events}
       API_INTERNAL_URL: http://host.docker.internal:8000
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -17,6 +23,7 @@ services:
       - "3001:3001"
     volumes:
       - ./uis:/app
+      - ./docs/event-schemas.json:/docs/event-schemas.json:ro
       - website_dependencies:/app/website/node_modules
       - backoffice_dependencies:/app/backoffice/node_modules
       - backoffice_next:/app/backoffice/.next
@@ -33,7 +40,9 @@ services:
       retries: 5
 
   backend:
-    build: ./services
+    build:
+      context: .
+      dockerfile: services/Dockerfile
     image: ${DOCKER_HUB_USER}/brasaland-api:${VERSION_TAG}
     init: true
     env_file:
@@ -43,6 +52,7 @@ services:
       - "8000:8000"
     volumes:
       - ./services:/app
+      - ./docs/event-schemas.json:/docs/event-schemas.json:ro
       - backend_data:/data
     networks:
       - platform

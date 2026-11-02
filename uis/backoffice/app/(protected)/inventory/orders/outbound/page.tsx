@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { InventoryNav } from "@/components/InventoryNav";
-import { createOutboundOrder, getProduct, getProducts } from "@/lib/inventory";
+import { createOutboundOrder, getProduct, getProducts, inventoryValidation } from "@/lib/inventory";
+import { useTelemetryFlow } from "@/lib/services/useTelemetryFlow";
 import { BRASALAND_LOCATIONS } from "@/lib/locations";
 import {
   Ingredient,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/types";
 
 function OutboundOrderFormContent() {
+  const flow = useTelemetryFlow("outbound_order");
   const searchParams = useSearchParams();
   const preselectedIngredientId = searchParams.get("ingredient_id");
 
@@ -28,6 +30,8 @@ function OutboundOrderFormContent() {
   const [loadingStock, setLoadingStock] = useState(false);
   const [quantity, setQuantity] = useState<string>("");
   const [reason, setReason] = useState<IngredientExitReason>("consumption");
+  const [wasteCause, setWasteCause] = useState<"expired" | "kitchen_error" | "theft_suspected">("expired");
+  const [unitCost, setUnitCost] = useState("");
   const [locationId, setLocationId] = useState<number>(1);
 
   // Status & error states
@@ -112,6 +116,11 @@ function OutboundOrderFormContent() {
   const selectedIngredient = products.find(
     (p) => p.id === Number(selectedIngredientId)
   );
+  useEffect(() => {
+    if (selectedIngredient && (locationId <= 10 ? "CO" : "US") !== selectedIngredient.country) {
+      setLocationId(selectedIngredient.country === "CO" ? 1 : 11);
+    }
+  }, [selectedIngredient?.country, locationId]);
 
   // Client-side guard: check if entered quantity exceeds available stock
   const numericQuantity = parseFloat(quantity);
@@ -130,15 +139,23 @@ function OutboundOrderFormContent() {
 
     const ingId = Number(selectedIngredientId);
     if (!ingId) {
+      inventoryValidation("outbound_order", "ingredient_id", "required");
       setFieldErrors({ ingredient_id: "Please select an ingredient." });
       return;
     }
 
     if (!hasEnteredQuantity) {
+      inventoryValidation("outbound_order", "quantity", "positive_quantity_required");
       setQuantityError("Please enter a valid positive quantity.");
       return;
     }
 
+    const cost = Number(unitCost);
+    if (reason === "waste" && (!unitCost.trim() || !Number.isFinite(cost) || cost < 0)) {
+      inventoryValidation("outbound_order", "unit_cost", "approved_cost_required");
+      setFieldErrors({ unit_cost: "Enter the approved waste unit cost in local currency." });
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -146,11 +163,13 @@ function OutboundOrderFormContent() {
         ingredient_id: ingId,
         quantity: numericQuantity,
         reason,
+        ...(reason === "waste" ? { waste_cause: wasteCause, unit_cost: cost } : {}),
         location_id: Number(locationId),
       });
 
       // On successful submission
       setSuccessOrder(response);
+      flow.complete();
       setQuantity("");
       setCurrentStock(response.ingredient.current_stock);
       setProducts((current) =>
@@ -255,6 +274,7 @@ function OutboundOrderFormContent() {
 
       <form
         onSubmit={handleSubmit}
+        onChange={flow.begin}
         noValidate
         className="space-y-6 rounded-lg border border-stone-200 bg-white p-6 shadow-sm"
       >
@@ -337,6 +357,22 @@ function OutboundOrderFormContent() {
             </p>
           )}
         </div>
+
+        {reason === "waste" && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="waste_cause" className="block text-sm font-medium text-stone-900 mb-1">Waste Cause</label>
+              <select id="waste_cause" value={wasteCause} disabled={submitting} onChange={(event) => setWasteCause(event.target.value as typeof wasteCause)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900">
+                <option value="expired">Expired</option><option value="kitchen_error">Kitchen Error</option><option value="theft_suspected">Suspected Theft</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="unit_cost" className="block text-sm font-medium text-stone-900 mb-1">Approved Unit Cost ({selectedIngredient?.country === "US" ? "USD" : "COP"})</label>
+              <input id="unit_cost" type="number" min="0" step="0.000001" value={unitCost} disabled={submitting} onChange={(event) => setUnitCost(event.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900" />
+              {fieldErrors.unit_cost && <p className="mt-1 text-xs text-red-600">{fieldErrors.unit_cost}</p>}
+            </div>
+          </div>
+        )}
 
         {/* Quantity field with inline error & UX warning */}
         <div>
@@ -445,7 +481,7 @@ function OutboundOrderFormContent() {
             onChange={(e) => setLocationId(Number(e.target.value))}
             className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
           >
-            {BRASALAND_LOCATIONS.map((loc) => (
+            {BRASALAND_LOCATIONS.filter((loc) => loc.country === selectedIngredient?.country).map((loc) => (
               <option key={loc.id} value={loc.id}>
                 {loc.label} [{loc.country === "CO" ? "Colombia" : "United States"}]
               </option>

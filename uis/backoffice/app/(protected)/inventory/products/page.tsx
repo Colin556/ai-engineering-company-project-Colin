@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { InventoryNav } from "@/components/InventoryNav";
+import { InventoryControls } from "@/components/InventoryControls";
 import { getProducts } from "@/lib/inventory";
 import { useAsyncList } from "@/lib/useAsyncList";
 import {
@@ -64,6 +65,7 @@ function loadProducts(
 }
 
 export default function InventoryProductsPage() {
+  const [controlsIngredient, setControlsIngredient] = useState<Ingredient | null>(null);
   const [countryFilter, setCountryFilter] = useState<IngredientCountry | "">("");
   const [categoryFilter, setCategoryFilter] = useState<IngredientCategory | "">("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,6 +88,7 @@ export default function InventoryProductsPage() {
 
   return (
     <div className="space-y-6">
+      {controlsIngredient && <InventoryControls ingredient={controlsIngredient} close={() => setControlsIngredient(null)} />}
       <header>
         <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-amber-700">
           Operations &bull; Central Inventory
@@ -266,6 +269,7 @@ export default function InventoryProductsPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => setControlsIngredient(ingredient)} className="rounded border border-stone-300 px-2.5 py-1 text-xs font-medium text-stone-700">Controls</button>
                           <Link
                             href={`/inventory/orders/inbound?ingredient_id=${ingredient.id}`}
                             className="rounded border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-100 transition"

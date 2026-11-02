@@ -8,6 +8,8 @@ server-side session is kept.
 from __future__ import annotations
 
 import os
+import hashlib
+import hmac
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -23,6 +25,7 @@ from tinydb import TinyDB
 load_dotenv(Path(__file__).parent / ".env")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
+TELEMETRY_HMAC_KEY = os.getenv("TELEMETRY_HMAC_KEY", "").strip()
 ALGORITHM = os.getenv("ALGORITHM", "HS256").strip()
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 # Clamped to the 15-60 minute window required for reset links.
@@ -93,7 +96,12 @@ def create_access_token(
         "type": ACCESS_TOKEN_TYPE,
         "iat": int(issued_at.timestamp()),
         "exp": int(expires_at.timestamp()),
+        "jti": uuid.uuid4().hex,
     }
+    if TELEMETRY_HMAC_KEY:
+        claims["telemetry_user_id"] = hmac.new(
+            TELEMETRY_HMAC_KEY.encode(), user_id.encode(), hashlib.sha256,
+        ).hexdigest()
     return jwt.encode(claims, SECRET_KEY, algorithm=ALGORITHM), minutes * 60
 
 

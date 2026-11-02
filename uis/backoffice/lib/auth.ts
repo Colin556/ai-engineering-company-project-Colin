@@ -1,4 +1,5 @@
 const TOKEN_KEY = "brasaland_access_token";
+import { track } from "./services/telemetry";
 // The native "storage" event only fires in other tabs, so same-tab changes use this one.
 const TOKEN_CHANGE_EVENT = "brasaland-token-change";
 
@@ -15,6 +16,18 @@ export function setToken(token: string): void {
 export function clearToken(): void {
   window.localStorage.removeItem(TOKEN_KEY);
   window.dispatchEvent(new Event(TOKEN_CHANGE_EVENT));
+}
+
+export function expireSession(expiryType: "absolute" | "revoked_or_invalid"): void {
+  if (!getToken()) return;
+  let age = 0;
+  try {
+    const session = JSON.parse(sessionStorage.getItem("brasaland_telemetry_session") || "null");
+    age = Math.max(0, Math.floor((Date.now() - (session?.startedAt ?? Date.now())) / 1000));
+  } catch {
+  }
+  track("auth_session_expired", { session_age_seconds: age, expiry_type: expiryType });
+  clearToken();
 }
 
 export function subscribeToToken(onChange: () => void): () => void {

@@ -17,6 +17,7 @@ import io
 import logging
 from time import perf_counter
 from contextlib import asynccontextmanager
+from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
@@ -34,6 +35,7 @@ from incident_analysis import (
 from incidents import router as incidents_router
 from incidents import validation_message
 from routers.inventory import router as inventory_router
+from routers.telemetry import router as telemetry_router
 from schemas import IncidentAnalysisResponse, UserResponse
 from suppliers import router as suppliers_router
 from suppliers import seed_suppliers
@@ -53,6 +55,7 @@ app.add_middleware(
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Server-Timing", "X-Request-ID"],
 )
 
 app.include_router(auth_router)
@@ -61,22 +64,29 @@ app.include_router(profiles_router)
 app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(inventory_router)
+app.include_router(telemetry_router)
 
 
 @app.middleware("http")
 async def timing_middleware(request: Request, call_next):
     started = perf_counter()
+    try:
+        request_id = str(UUID(request.headers.get("X-Request-ID", "")))
+    except ValueError:
+        request_id = str(uuid4())
+    request.state.request_id = request_id
     status_code = 500
     try:
         response = await call_next(request)
         status_code = response.status_code
         response.headers["Server-Timing"] = f"app;dur={(perf_counter() - started) * 1000:.3f}"
+        response.headers["X-Request-ID"] = request_id
         return response
     finally:
         route = getattr(request.scope.get("route"), "path", "<unmatched>")
         logging.getLogger("uvicorn.error.timing").info(
-            "%s %s status=%s duration_ms=%.3f",
-            request.method, route, status_code, (perf_counter() - started) * 1000,
+            "%s %s status=%s duration_ms=%.3f request_id=%s",
+            request.method, route, status_code, (perf_counter() - started) * 1000, request_id,
         )
 
 

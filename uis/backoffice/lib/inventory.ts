@@ -1,4 +1,6 @@
-import { clearToken, getToken } from "./auth";
+import { expireSession, getToken } from "./auth";
+import { track } from "./services/telemetry";
+import { captureDrafts, measuredFetch } from "./services/telemetry-http";
 import {
   Ingredient,
   IngredientCountry,
@@ -37,6 +39,7 @@ async function parseApiError(response: Response): Promise<InventoryApiError> {
   }
 
   const detail = body?.detail;
+  if (detail?.telemetry_event) captureDrafts(response, [detail.telemetry_event]);
 
   if (response.status >= 500) {
     const serverMessage =
@@ -102,7 +105,7 @@ async function inventoryFetch(path: string, init?: RequestInit): Promise<Respons
 
   let response: Response;
   try {
-    response = await fetch(`${inventoryApiBaseUrl()}${path}`, {
+    response = await measuredFetch(`${inventoryApiBaseUrl()}${path}`, path, {
       ...init,
       headers,
     });
@@ -115,7 +118,7 @@ async function inventoryFetch(path: string, init?: RequestInit): Promise<Respons
   }
 
   if (response.status === 401) {
-    clearToken();
+    expireSession("revoked_or_invalid");
     if (typeof window !== "undefined") {
       window.location.replace("/login");
     }
@@ -123,7 +126,14 @@ async function inventoryFetch(path: string, init?: RequestInit): Promise<Respons
   }
 
   if (!response.ok) {
-    throw await parseApiError(response);
+    const error = await parseApiError(response);
+    const workflow = path.endsWith("/inbound") ? "inbound_order" : path.endsWith("/outbound") ? "outbound_order" : null;
+    if (workflow && response.status === 422) {
+      const fields = Object.keys(error.fieldErrors);
+      for (const field of fields.length ? fields : ["order"]) inventoryValidation(workflow, field, "api_validation_rejected");
+    }
+    if (workflow === "outbound_order" && response.status === 400) inventoryValidation(workflow, "quantity", "insufficient_stock");
+    throw error;
   }
 
   return response;
@@ -131,7 +141,29 @@ async function inventoryFetch(path: string, init?: RequestInit): Promise<Respons
 
 async function inventoryJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await inventoryFetch(path, init);
-  return response.json();
+  const data = await response.json();
+  captureDrafts(response, data?.telemetry_events);
+  return data;
+}
+
+export function inventoryValidation(workflow: "inbound_order" | "outbound_order" | "product_create", field: string, rule: string): void {
+  track("inventory_validation_failed", { workflow_id: workflow, field_code: field, rule_code: rule });
+}
+
+export function rejectDirectStockEdit(id: number, locationId: number, quantity: number): Promise<Response> {
+  return inventoryFetch(`/inventory/products/${id}/stock`, {
+    method: "PATCH", body: JSON.stringify({ location_id: locationId, quantity }),
+  });
+}
+
+export function configureInventoryLocation(id: number, locationId: number, settings: { minimum_quantity: number; threshold_percent?: number; history_days?: number; minimum_samples?: number }): Promise<unknown> {
+  return inventoryJson(`/inventory/products/${id}/locations/${locationId}/settings`, {
+    method: "PUT", body: JSON.stringify(settings),
+  });
+}
+
+export function getInventoryLocationSettings(id: number, locationId: number): Promise<{ minimum_quantity: number; threshold_percent: number; history_days: number; minimum_samples: number } | null> {
+  return inventoryJson(`/inventory/products/${id}/locations/${locationId}/settings`);
 }
 
 /**

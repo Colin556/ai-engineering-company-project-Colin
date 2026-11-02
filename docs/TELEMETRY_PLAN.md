@@ -1,6 +1,6 @@
 # Brasaland Telemetry Plan
 
-**Status:** proposal only; no instrumentation or application changes are included.  
+**Status:** approved by the project owner for frontend capture; implementation is documented in [TELEMETRY_CAPTURE.md](TELEMETRY_CAPTURE.md).
 **Scope:** the production backoffice and FastAPI inventory API, plus internal jobs that read or change their data.  
 **Schema registry:** [event-schemas.json](event-schemas.json)
 
@@ -37,7 +37,7 @@ All six mandatory inventory events include the briefing's required properties: `
 
 For durable purchasing and waste-cost reporting, `inbound_order_created` and `stock_waste_registered` also include `unit_cost` and `total_cost` in local currency; inbound also includes `supplier_id`. These fields extend, rather than replace, the briefing's minimum. `ingredient_price_variance_detected` carries current and reference unit costs and the percentage delta. Do not aggregate COP and USD together.
 
-**Known source gaps to resolve before implementation:** the current inventory models described in the backend context do not expose order cost, and `IngredientExit.reason` distinguishes only `consumption` from `waste`, not the three waste causes. The inbound API has `supplier_name`, not a guaranteed stable `supplier_id`. Instrumentation must not invent these values: add validated source fields/mappings in the owning workflow, or defer the affected cost/variance/waste detail until they exist. The exit guard currently rejects an overdraw with HTTP 400 before writing; emit the rejection event from that controlled path. Direct stock editing must remain impossible: emit `direct_stock_edit_rejected` only at an explicit rejected route/permission boundary or gateway rule, never by creating a mutation endpoint.
+**Capture-phase source resolution:** the owner authorized compatible inventory extensions: inbound supplier IDs and local-currency unit cost, explicit waste cause and approved unit cost, and manager-owned per-location minimum/price-history settings. Apply the documented inventory migration before deploying against existing tables. Legacy source fields remain nullable; telemetry must not estimate missing values. The new backoffice forms provide complete source fields. The exit guard rejects an overdraw with HTTP 400 before writing. Direct stock editing remains impossible: an explicit rejecting route returns an allowlisted rejection draft without changing stock. The frontend captures confirmed response drafts through its single `track()` function; a transactional outbox and database telemetry persistence remain future work.
 
 ## 3. Phase 1: Catalogue of data opportunities
 

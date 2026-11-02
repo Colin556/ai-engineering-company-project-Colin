@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 MAX_PASSWORD_LENGTH = 72
 
@@ -322,10 +322,47 @@ class IngredientOrderCreate(BaseModel):
 
 class IngredientEntryCreate(IngredientOrderCreate):
     supplier_name: str = Field(min_length=1, max_length=160)
+    supplier_id: int | None = Field(default=None, gt=0)
+    unit_cost: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=6, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def purchasing_fields(self) -> "IngredientEntryCreate":
+        if (self.supplier_id is None) != (self.unit_cost is None):
+            raise ValueError("supplier_id and unit_cost must be supplied together")
+        return self
 
 
 class IngredientExitCreate(IngredientOrderCreate):
     reason: IngredientExitReason
+    waste_cause: Literal["expired", "kitchen_error", "theft_suspected"] | None = None
+    unit_cost: Decimal | None = Field(default=None, ge=0, max_digits=18, decimal_places=6, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def waste_fields(self) -> "IngredientExitCreate":
+        if self.reason == "consumption" and (self.waste_cause is not None or self.unit_cost is not None):
+            raise ValueError("Waste fields are only valid for waste exits")
+        if (self.waste_cause is None) != (self.unit_cost is None):
+            raise ValueError("waste_cause and approved unit_cost must be supplied together")
+        return self
+
+
+class InventoryLocationSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    minimum_quantity: float = Field(ge=0, allow_inf_nan=False)
+    threshold_percent: float = Field(default=10, gt=0, allow_inf_nan=False)
+    history_days: int = Field(default=30, ge=1, le=365)
+    minimum_samples: int = Field(default=3, ge=1, le=100)
+
+
+class DirectStockEdit(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    location_id: int = Field(ge=1, le=14)
+    quantity: float = Field(allow_inf_nan=False)
+
+
+class InventoryTelemetryDraft(BaseModel):
+    event_type: str
+    properties: dict[str, Any]
 
 
 class IngredientOrderFields(BaseModel):
@@ -341,16 +378,21 @@ class IngredientOrderFields(BaseModel):
 
 class IngredientOrderResponse(IngredientOrderFields):
     ingredient: IngredientResponse
+    telemetry_events: list[InventoryTelemetryDraft] = Field(default_factory=list)
 
 
 class IngredientEntryResponse(IngredientOrderResponse):
     order_type: Literal["inbound"] = "inbound"
     supplier_name: str
+    supplier_id: int | None = None
+    unit_cost: float | None = None
 
 
 class IngredientExitResponse(IngredientOrderResponse):
     order_type: Literal["outbound"] = "outbound"
     reason: IngredientExitReason
+    waste_cause: Literal["expired", "kitchen_error", "theft_suspected"] | None = None
+    unit_cost: float | None = None
 
 
 class OrderIngredientSummary(BaseModel):

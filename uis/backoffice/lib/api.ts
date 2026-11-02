@@ -1,4 +1,7 @@
-import { clearToken, getToken, setToken } from "@/lib/auth";
+import { expireSession, getToken, setToken } from "./auth";
+import { track } from "./services/telemetry";
+import { measuredFetch } from "./services/telemetry-http";
+import { withRequestId } from "./services/telemetry-context";
 import {
   IncidentAnalysisResult,
   Incident,
@@ -18,7 +21,7 @@ import {
   SupplierListItem,
   SupplierStatus,
   TokenResponse,
-} from "@/lib/types";
+} from "./types";
 
 const DEFAULT_API_BASE_URL = "/backend";
 
@@ -80,7 +83,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 
 async function send(path: string, init?: RequestInit): Promise<Response> {
   try {
-    return await fetch(`${apiBaseUrl()}${path}`, init);
+    return await measuredFetch(`${apiBaseUrl()}${path}`, path, init);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") throw error;
     throw new ApiError("Could not reach the server. Please try again.", 0);
@@ -97,7 +100,7 @@ async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   const response = await send(path, { ...init, headers });
 
   if (response.status === 401) {
-    clearToken();
+    expireSession("revoked_or_invalid");
     window.location.replace("/login");
     throw new ApiError("Your session has expired. Please sign in again.", 401);
   }
@@ -111,9 +114,13 @@ async function authJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function login(email: string, password: string): Promise<void> {
+  const started = performance.now();
+  const requestId = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : "uncorrelated";
+  try {
   // OAuth2 password flow: form-encoded, with the email sent as `username`.
   const response = await send("/auth/login", {
     method: "POST",
+    headers: { "X-Request-ID": requestId },
     body: new URLSearchParams({ username: email, password }),
   });
 
@@ -126,6 +133,17 @@ export async function login(email: string, password: string): Promise<void> {
 
   const token: TokenResponse = await response.json();
   setToken(token.access_token);
+  withRequestId(response.headers?.get("X-Request-ID") ?? requestId, () => track("auth_login_succeeded", {
+    auth_method: "password", duration_ms: Math.round(performance.now() - started),
+  }));
+  } catch (error) {
+    const status = error instanceof ApiError ? error.status : 0;
+    withRequestId(requestId, () => track("auth_login_failed", {
+      auth_method: "password", duration_ms: Math.round(performance.now() - started),
+      failure_code: status === 0 || status >= 500 ? "provider_unavailable" : status === 429 ? "rate_limited" : status === 403 ? "locked" : "invalid_credentials",
+    }));
+    throw error;
+  }
 }
 
 export async function register(input: RegisterInput): Promise<void> {
@@ -270,22 +288,26 @@ export function createSupplier(input: SupplierInput): Promise<Supplier> {
   });
 }
 
-export function updateSupplierRate(
+export async function updateSupplierRate(
   id: number,
   ratePerUnit: number
 ): Promise<Supplier> {
-  return authJson<Supplier>(`/suppliers/${id}/rate`, {
+  const supplier = await authJson<Supplier>(`/suppliers/${id}/rate`, {
     method: "PATCH",
     body: JSON.stringify({ rate_per_unit: ratePerUnit }),
   });
+  track("supplier_record_updated", { supplier_id: String(supplier.id), changed_fields: ["rate"], country: supplier.country });
+  return supplier;
 }
 
-export function updateSupplierStatus(
+export async function updateSupplierStatus(
   id: number,
   status: SupplierStatus
 ): Promise<Supplier> {
-  return authJson<Supplier>(`/suppliers/${id}/status`, {
+  const supplier = await authJson<Supplier>(`/suppliers/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
   });
+  track("supplier_record_updated", { supplier_id: String(supplier.id), changed_fields: ["status"], country: supplier.country });
+  return supplier;
 }

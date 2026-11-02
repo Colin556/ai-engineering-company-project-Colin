@@ -1,7 +1,8 @@
 services:
   ui:
     build:
-      context: ./uis
+      context: .
+      dockerfile: uis/Dockerfile
       target: production
     env_file: !override
       - path: ./.env

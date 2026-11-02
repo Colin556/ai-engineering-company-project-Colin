@@ -58,10 +58,10 @@ def test_order_history_controls_stock(inventory_client, inventory_db, register_a
     ingredient = response.json()
     assert ingredient["current_stock"] == 0
     ingredient_id = ingredient["id"]
-    for quantity in (50, 30):
+    for quantity, location_id in ((50, 1), (30, 2)):
         response = inventory_client.post("/inventory/orders/inbound", headers=headers, json={
             "ingredient_id": ingredient_id, "quantity": quantity,
-            "supplier_name": "Carnes del Valle S.A.", "location_id": 1,
+            "supplier_name": "Carnes del Valle S.A.", "location_id": location_id,
         })
         assert response.status_code == 201, response.text
         assert response.json()["user_uuid"] == user["id"]
@@ -146,7 +146,7 @@ def test_missing_ingredients_duplicate_sku_and_zero_stock(inventory_client, regi
 
 def test_reasons_supplier_and_decimal_boundary(inventory_client, register_and_login):
     user, headers = register_and_login()
-    product = inventory_client.post("/inventory/products", headers=headers, json=product_payload()).json()
+    product = inventory_client.post("/inventory/products", headers=headers, json=product_payload(country="US")).json()
     payload = {"ingredient_id": product["id"], "quantity": 1, "location_id": 14}
     for reason in ("sale", "Waste", ""):
         assert inventory_client.post("/inventory/orders/outbound", headers=headers, json={
@@ -239,6 +239,57 @@ def test_seed_rejects_unknown_user(inventory_db):
         with pytest.raises(ValueError, match="existing, active TinyDB"):
             seed_inventory(session, "missing-user")
         assert session.exec(select(Ingredient)).all() == []
+
+
+def test_mandatory_telemetry_sources(inventory_client, inventory_db, register_and_login):
+    from core import users_table
+    from tinydb import Query
+    from routers.telemetry import TelemetryEvent
+    from uuid import uuid4
+
+    user, headers = register_and_login()
+    users_table.update({"role": "manager"}, Query().id == user["id"])
+    product = inventory_client.post("/inventory/products", headers=headers, json=product_payload()).json()
+    product_id = product["id"]
+    settings_path = f"/inventory/products/{product_id}/locations/1/settings"
+    assert inventory_client.put(settings_path, headers=headers, json={"minimum_quantity": 5}).status_code == 200
+    supplier = next(item for item in inventory_client.get("/suppliers", headers=headers).json() if item["country"] == "CO" and item["status"] == "active")
+    inbound = {"ingredient_id": product_id, "quantity": 10, "location_id": 1, "supplier_id": supplier["id"], "supplier_name": supplier["name"], "unit_cost": 100}
+    drafts = []
+    for _ in range(3):
+        response = inventory_client.post("/inventory/orders/inbound", headers=headers, json=inbound)
+        assert response.status_code == 201, response.text
+        drafts.extend(response.json()["telemetry_events"])
+    response = inventory_client.post("/inventory/orders/inbound", headers=headers, json={**inbound, "unit_cost": 120})
+    assert response.status_code == 201, response.text
+    drafts.extend(response.json()["telemetry_events"])
+    assert drafts[-1]["event_type"] == "ingredient_price_variance_detected"
+    assert drafts[-1]["properties"]["reference_unit_cost"] == 100
+    response = inventory_client.post("/inventory/orders/outbound", headers=headers, json={"ingredient_id": product_id, "location_id": 1, "quantity": 36, "reason": "consumption"})
+    assert response.status_code == 201, response.text
+    drafts.extend(response.json()["telemetry_events"])
+    assert drafts[-1]["event_type"] == "stock_threshold_triggered"
+    response = inventory_client.post("/inventory/orders/outbound", headers=headers, json={"ingredient_id": product_id, "location_id": 1, "quantity": 1, "reason": "waste", "waste_cause": "expired", "unit_cost": 100})
+    assert response.status_code == 201, response.text
+    assert len(response.json()["telemetry_events"]) == 1
+    drafts.extend(response.json()["telemetry_events"])
+    response = inventory_client.patch(f"/inventory/products/{product_id}/stock", headers=headers, json={"location_id": 1, "quantity": 900})
+    assert response.status_code == 403
+    drafts.append(response.json()["detail"]["telemetry_event"])
+    assert inventory_client.get(f"/inventory/products/{product_id}", headers=headers).json()["current_stock"] == 3
+    assert {draft["event_type"] for draft in drafts} == {
+        "inbound_order_created", "outbound_order_created", "stock_waste_registered",
+        "stock_threshold_triggered", "direct_stock_edit_rejected", "ingredient_price_variance_detected",
+    }
+    for draft in drafts:
+        TelemetryEvent.model_validate({**draft, "eventId": str(uuid4()), "timestamp": "2026-11-02T12:00:00Z", "userId": None, "sessionId": None, "schemaVersion": 1, "requestId": str(uuid4())})
+
+
+def test_control_configuration_requires_manager(inventory_client, register_and_login):
+    _, headers = register_and_login()
+    product = inventory_client.post("/inventory/products", headers=headers, json=product_payload()).json()
+    response = inventory_client.put(f"/inventory/products/{product['id']}/locations/1/settings", headers=headers, json={"minimum_quantity": 5})
+    assert response.status_code == 403
 
 
 @pytest.fixture

@@ -5,12 +5,17 @@ import {
   getProduct,
   getProducts,
   InventoryApiError,
+  rejectDirectStockEdit,
 } from "../lib/inventory";
+import { track } from "../lib/services/telemetry";
+
+jest.mock("../lib/services/telemetry", () => ({ track: jest.fn() }));
 
 describe("Inventory API client (lib/inventory.ts)", () => {
   const originalFetch = global.fetch;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     localStorage.clear();
     global.fetch = jest.fn();
   });
@@ -154,6 +159,28 @@ describe("Inventory API client (lib/inventory.ts)", () => {
     await expect(getProducts()).rejects.toThrow(
       "Unable to reach the Brasaland inventory service. Please check your network or verify the backend is running."
     );
+  });
+
+  it("captures only committed response drafts with correlation", async () => {
+    const properties = { location_id: 1, country: "CO", product_id: 1, product_category: "meat", quantity: 2, unit: "kg", currency: "COP", reason: "consumption" };
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true, status: 201, headers: new Headers({ "X-Request-ID": "f01fdb23-bac8-49d5-a581-1d3533f82dac" }),
+      json: async () => ({ telemetry_events: [{ event_type: "outbound_order_created", properties }] }),
+    });
+    await createOutboundOrder({ ingredient_id: 1, quantity: 2, reason: "consumption", location_id: 1 });
+    expect(track).toHaveBeenCalledWith("outbound_order_created", properties);
+    expect(track).toHaveBeenCalledTimes(1);
+  });
+
+  it("captures a rejected stock edit without a created event", async () => {
+    const properties = { location_id: 1, country: "CO", product_id: 1, product_category: "meat", quantity: 900, unit: "kg", currency: "COP", rejection_code: "order_required" };
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false, status: 403, headers: new Headers({ "X-Request-ID": "f01fdb23-bac8-49d5-a581-1d3533f82dac" }),
+      json: async () => ({ detail: { message: "Order required.", telemetry_event: { event_type: "direct_stock_edit_rejected", properties } } }),
+    });
+    await expect(rejectDirectStockEdit(1, 1, 900)).rejects.toThrow("Order required.");
+    expect(track).toHaveBeenCalledWith("direct_stock_edit_rejected", properties);
+    expect(track).not.toHaveBeenCalledWith("outbound_order_created", expect.anything());
   });
 });
 

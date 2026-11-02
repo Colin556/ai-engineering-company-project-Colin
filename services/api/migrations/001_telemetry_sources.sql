@@ -1,0 +1,7 @@
+BEGIN;
+ALTER TABLE ingredient ADD COLUMN IF NOT EXISTS location_settings JSON NOT NULL DEFAULT '{}';
+ALTER TABLE ingrediententry ADD COLUMN IF NOT EXISTS supplier_id INTEGER;
+ALTER TABLE ingrediententry ADD COLUMN IF NOT EXISTS unit_cost NUMERIC(18, 6);
+ALTER TABLE ingredientexit ADD COLUMN IF NOT EXISTS waste_cause VARCHAR;
+ALTER TABLE ingredientexit ADD COLUMN IF NOT EXISTS unit_cost NUMERIC(18, 6);
+COMMIT;

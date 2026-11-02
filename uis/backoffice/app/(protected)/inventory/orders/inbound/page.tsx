@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { InventoryNav } from "@/components/InventoryNav";
-import { createInboundOrder, getProducts } from "@/lib/inventory";
+import { createInboundOrder, getProducts, inventoryValidation } from "@/lib/inventory";
+import { listSuppliers } from "@/lib/api";
+import { useTelemetryFlow } from "@/lib/services/useTelemetryFlow";
 import { BRASALAND_LOCATIONS } from "@/lib/locations";
-import { Ingredient, IngredientEntryResponse } from "@/lib/types";
+import { Ingredient, IngredientEntryResponse, SupplierListItem } from "@/lib/types";
 
 function InboundOrderFormContent() {
+  const flow = useTelemetryFlow("inbound_order");
   const searchParams = useSearchParams();
   const preselectedIngredientId = searchParams.get("ingredient_id");
 
@@ -20,7 +23,9 @@ function InboundOrderFormContent() {
     preselectedIngredientId || ""
   );
   const [quantity, setQuantity] = useState<string>("");
-  const [supplierName, setSupplierName] = useState<string>("");
+  const [supplierId, setSupplierId] = useState("");
+  const [suppliers, setSuppliers] = useState<SupplierListItem[]>([]);
+  const [unitCost, setUnitCost] = useState("");
   const [locationId, setLocationId] = useState<number>(1);
 
   // Status & error states
@@ -63,6 +68,19 @@ function InboundOrderFormContent() {
   const selectedIngredient = products.find(
     (p) => p.id === Number(selectedIngredientId)
   );
+  const supplier = suppliers.find((item) => item.id === Number(supplierId));
+  useEffect(() => {
+    const controller = new AbortController();
+    listSuppliers({}, controller.signal).then(setSuppliers).catch((error) => {
+      if (!controller.signal.aborted) setApiError(error.message);
+    });
+    return () => controller.abort();
+  }, []);
+  useEffect(() => {
+    if (selectedIngredient && (locationId <= 10 ? "CO" : "US") !== selectedIngredient.country) {
+      setLocationId(selectedIngredient.country === "CO" ? 1 : 11);
+    }
+  }, [selectedIngredient?.country, locationId]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,18 +90,27 @@ function InboundOrderFormContent() {
 
     const ingId = Number(selectedIngredientId);
     if (!ingId) {
+      inventoryValidation("inbound_order", "ingredient_id", "required");
       setFieldErrors({ ingredient_id: "Please select an ingredient." });
       return;
     }
 
     const numQty = parseFloat(quantity);
     if (isNaN(numQty) || numQty <= 0) {
+      inventoryValidation("inbound_order", "quantity", "positive_quantity_required");
       setFieldErrors({ quantity: "Please enter a valid positive delivery quantity." });
       return;
     }
 
-    if (!supplierName.trim()) {
-      setFieldErrors({ supplier_name: "Supplier name is required." });
+    if (!supplier || supplier.country !== selectedIngredient?.country || supplier.status !== "active") {
+      inventoryValidation("inbound_order", "supplier_id", "active_market_supplier_required");
+      setFieldErrors({ supplier_name: "Select an active supplier for this market." });
+      return;
+    }
+    const cost = Number(unitCost);
+    if (!unitCost.trim() || !Number.isFinite(cost) || cost < 0) {
+      inventoryValidation("inbound_order", "unit_cost", "nonnegative_cost_required");
+      setFieldErrors({ unit_cost: "Enter a valid unit cost in local currency." });
       return;
     }
 
@@ -93,14 +120,18 @@ function InboundOrderFormContent() {
       const response = await createInboundOrder({
         ingredient_id: ingId,
         quantity: numQty,
-        supplier_name: supplierName.trim(),
+        supplier_name: supplier.name,
+        supplier_id: supplier.id,
+        unit_cost: cost,
         location_id: Number(locationId),
       });
 
       // On successful submission: clear form and show confirmation message
       setSuccessOrder(response);
+      flow.complete();
       setQuantity("");
-      setSupplierName("");
+      setSupplierId("");
+      setUnitCost("");
       // Refresh current stock of the ingredient in local list
       setProducts((current) =>
         current.map((item) =>
@@ -195,6 +226,7 @@ function InboundOrderFormContent() {
 
       <form
         onSubmit={handleSubmit}
+        onChange={flow.begin}
         noValidate
         className="space-y-6 rounded-lg border border-stone-200 bg-white p-6 shadow-sm"
       >
@@ -293,15 +325,13 @@ function InboundOrderFormContent() {
           >
             Supplier Name <span className="text-red-500">*</span>
           </label>
-          <input
+          <select
             id="supplier_name"
             name="supplier_name"
-            type="text"
             disabled={submitting}
-            placeholder="e.g. Carnes del Valle S.A., MiamiMeat Co., Salsas Artesanales Ltda."
-            value={supplierName}
+            value={supplierId}
             onChange={(e) => {
-              setSupplierName(e.target.value);
+              setSupplierId(e.target.value);
               setFieldErrors((prev) => ({ ...prev, supplier_name: "" }));
             }}
             className={`w-full rounded-md border px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-1 ${
@@ -309,10 +339,21 @@ function InboundOrderFormContent() {
                 ? "border-red-500 focus:border-red-500 focus:ring-red-500"
                 : "border-stone-300 focus:border-amber-600 focus:ring-amber-600"
             }`}
-          />
+          >
+            <option value="">Select supplier</option>
+            {suppliers.filter((item) => item.country === selectedIngredient?.country && item.status === "active").map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
           {fieldErrors.supplier_name && (
             <p className="mt-1 text-xs text-red-600">{fieldErrors.supplier_name}</p>
           )}
+        </div>
+
+        <div>
+          <label htmlFor="unit_cost" className="block text-sm font-medium text-stone-900 mb-1">Unit Cost ({selectedIngredient?.country === "US" ? "USD" : "COP"})</label>
+          <input id="unit_cost" type="number" min="0" step="0.000001" value={unitCost} disabled={submitting} onChange={(event) => setUnitCost(event.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-900" />
+          {fieldErrors.unit_cost && <p className="mt-1 text-xs text-red-600">{fieldErrors.unit_cost}</p>}
         </div>
 
         {/* Receiving Location */}
@@ -331,7 +372,7 @@ function InboundOrderFormContent() {
             onChange={(e) => setLocationId(Number(e.target.value))}
             className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-600"
           >
-            {BRASALAND_LOCATIONS.map((loc) => (
+            {BRASALAND_LOCATIONS.filter((loc) => loc.country === selectedIngredient?.country).map((loc) => (
               <option key={loc.id} value={loc.id}>
                 {loc.label} [{loc.country === "CO" ? "Colombia" : "United States"}]
               </option>

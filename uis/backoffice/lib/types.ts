@@ -152,6 +152,8 @@ export interface IngredientEntryInput {
   ingredient_id: number;
   quantity: number;
   supplier_name: string;
+  supplier_id?: number;
+  unit_cost?: number;
   location_id: number;
 }
 
@@ -159,6 +161,8 @@ export interface IngredientExitInput {
   ingredient_id: number;
   quantity: number;
   reason: IngredientExitReason;
+  waste_cause?: "expired" | "kitchen_error" | "theft_suspected";
+  unit_cost?: number;
   location_id: number;
 }
 
