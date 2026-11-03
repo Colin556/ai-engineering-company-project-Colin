@@ -13,7 +13,8 @@ os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 os.environ.setdefault("SUPPLIERS_DB_PATH", str(API_DIR / "data" / "test_db.json"))
 # Never send real email from tests, even if a developer's shell exports a key.
 os.environ["RESEND_API_KEY"] = ""
-os.environ["DATABASE_URL"] = ""
+# Use SQLite for testing
+os.environ["DATABASE_URL"] = f"sqlite:///{API_DIR / 'data' / 'test_telemetry.db'}"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -25,14 +26,33 @@ from core import (  # noqa: E402
     suppliers_table,
     users_table,
 )
+from database import engine
 from main import app  # noqa: E402
 from response_cache import incident_summary_cache, supplier_list_cache
 from suppliers import seed_suppliers  # noqa: E402
+from sqlmodel import SQLModel
 
 
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def db():
+    """Fixture providing a test database connection for telemetry tests."""
+    if engine is None:
+        pytest.skip("DATABASE_URL not configured")
+    
+    SQLModel.metadata.create_all(engine)
+    yield engine
+    
+    # Cleanup
+    from models import TelemetryEvent
+    from sqlmodel import Session, delete
+    with Session(engine) as session:
+        session.exec(delete(TelemetryEvent))
+        session.commit()
 
 
 @pytest.fixture(autouse=True)

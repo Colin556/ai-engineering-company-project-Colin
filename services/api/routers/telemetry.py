@@ -6,9 +6,13 @@ from typing import Any, Literal
 from uuid import UUID
 
 import json
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from jsonschema import Draft7Validator, FormatChecker
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from sqlmodel import Session, insert
+
+from database import engine, get_db
+from models import TelemetryEvent
 
 TELEMETRY_ENDPOINT = os.getenv("TELEMETRY_ENDPOINT", "http://localhost:8000/telemetry/events")
 SCHEMA_VERSION = 1
@@ -18,7 +22,7 @@ logger = logging.getLogger("uvicorn.error.telemetry")
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
 
 
-class TelemetryEvent(BaseModel):
+class TelemetryEventModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     eventId: UUID
@@ -45,17 +49,88 @@ class TelemetryEvent(BaseModel):
         return value
 
 
-class TelemetryBatch(BaseModel):
+class TelemetryBatchRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    events: list[TelemetryEvent] = Field(max_length=1000)
+    events: list[dict[str, Any]] = Field(max_length=1000)
 
 
-@router.post("/events", response_model=dict[str, int])
-def receive_events(batch: TelemetryBatch | bytes = Body(...)) -> dict[str, int]:
+class TelemetryBatchResponse(BaseModel):
+    received: int
+    stored: int
+    rejected: int
+
+
+@router.post("/events", response_model=TelemetryBatchResponse)
+def receive_events(
+    batch: TelemetryBatchRequest | bytes = Body(...),
+    db: Session = Depends(get_db),
+) -> TelemetryBatchResponse:
+    """
+    Receive, validate, and store telemetry events in bulk.
+    
+    Per-event validation ensures that invalid events are rejected individually,
+    while valid events in the same batch are persisted regardless. This enables
+    partial acceptance: the frontend retries or handles rejected events while
+    the rest of the batch is durably stored.
+    
+    Returns:
+        - received: total events in the batch
+        - stored: events persisted to the database
+        - rejected: events that failed validation
+    """
     if isinstance(batch, bytes):
         try:
-            batch = TelemetryBatch.model_validate_json(batch)
+            batch = TelemetryBatchRequest.model_validate_json(batch)
         except ValidationError as error:
             raise HTTPException(status_code=422, detail="Invalid telemetry batch") from error
-    logger.info("Received %d telemetry events: %s", len(batch.events), [event.event_type for event in batch.events])
-    return {"received": len(batch.events)}
+
+    received_count = len(batch.events)
+    valid_events = []
+    rejected_count = 0
+
+    for raw_event in batch.events:
+        try:
+            validated_event = TelemetryEventModel.model_validate(raw_event)
+            
+            db_event = TelemetryEvent(
+                event_id=validated_event.eventId,
+                event_type=validated_event.event_type,
+                timestamp=validated_event.timestamp,
+                service="api",
+                session_id=validated_event.sessionId,
+                user_id=validated_event.userId,
+                request_id=validated_event.requestId,
+                schema_version=validated_event.schemaVersion,
+                tags=validated_event.properties,
+            )
+            valid_events.append(db_event)
+        except ValidationError as e:
+            logger.debug(
+                "Rejected telemetry event: %s",
+                str(e),
+            )
+            rejected_count += 1
+
+    stored_count = 0
+    if valid_events:
+        try:
+            db.add_all(valid_events)
+            db.commit()
+            stored_count = len(valid_events)
+            logger.info(
+                "Telemetry batch: received=%d, stored=%d, rejected=%d, event_types=%s",
+                received_count,
+                stored_count,
+                rejected_count,
+                [evt.event_type for evt in valid_events],
+            )
+        except Exception as e:
+            logger.error("Failed to persist telemetry events: %s", str(e))
+            db.rollback()
+            raise HTTPException(status_code=500, detail="Failed to persist telemetry events") from e
+
+    return TelemetryBatchResponse(
+        received=received_count,
+        stored=stored_count,
+        rejected=rejected_count,
+    )

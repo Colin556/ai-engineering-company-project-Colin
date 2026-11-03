@@ -11,7 +11,8 @@ from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine
 
 from core import db as auth_db
-from models import Ingredient, IngredientEntry, IngredientExit
+from models import Ingredient, IngredientEntry, IngredientExit, TelemetryEvent
+
 
 
 def postgresql_url(url: str) -> str:
