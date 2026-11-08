@@ -25,6 +25,9 @@ export default function ProtectedLayout({ children }: LayoutProps<"/">) {
           <Link href="/suppliers" className={NAV_LINK}>
             Suppliers
           </Link>
+          <Link href="/telemetry" className={NAV_LINK}>
+            Telemetry
+          </Link>
           <div className="ml-auto flex items-center gap-4">
             <Link href="/account/profile" className={NAV_LINK}>
               My profile

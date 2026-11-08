@@ -215,10 +215,3 @@ All six mandatory events from the briefing are supported:
 
 ---
 
- 11/02 For Operations Team:
- Apply migration to Supabase (complete)
-Deploy code (routers/telemetry.py, models.py, database.py) (complete)
-Generate test events through backoffice
-Query telemetry_events table to confirm storage
-Test rejection behavior with curl
-Verify frontend still works

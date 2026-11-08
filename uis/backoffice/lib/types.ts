@@ -60,6 +60,19 @@ export interface IncidentSummary {
   by_branch: Record<string, number>;
 }
 
+export interface TelemetryReport {
+  period: { from: string; to: string };
+  metrics: {
+    events_per_day: { date: string; event_type: string; count: number }[];
+    event_type_distribution: { event_type: string; count: number; active_days: number; share: number }[];
+    error_rate_by_type: { date: string; error_code: string; failures: number; requests: number; error_rate: number }[];
+    api_latency_by_route: {
+      date: string; route_id: string; sampled_requests: number; avg_ms: number; max_ms: number; slow_requests: number;
+    }[];
+    auth_failure_rate: { date: string; attempts: number; failures: number; failure_rate: number }[];
+  };
+}
+
 export const SUPPLIER_COUNTRIES = ["CO", "US"] as const;
 export const SUPPLIER_CATEGORIES = [
   "meat",

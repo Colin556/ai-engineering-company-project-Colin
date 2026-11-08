@@ -20,6 +20,7 @@ import {
   SupplierInput,
   SupplierListItem,
   SupplierStatus,
+  TelemetryReport,
   TokenResponse,
 } from "./types";
 
@@ -247,6 +248,17 @@ export function listIncidents(
 
 export function getIncidentSummary(signal?: AbortSignal): Promise<IncidentSummary> {
   return authJson<IncidentSummary>("/api/incidents/summary", { signal });
+}
+
+export function getTelemetryReport(
+  period: { start_date?: string; end_date?: string },
+  signal?: AbortSignal
+): Promise<TelemetryReport> {
+  const query = new URLSearchParams();
+  if (period.start_date) query.set("start_date", period.start_date);
+  if (period.end_date) query.set("end_date", period.end_date);
+  const suffix = query.size ? `?${query}` : "";
+  return authJson<TelemetryReport>(`/telemetry/report${suffix}`, { signal });
 }
 
 export function updateIncidentStatus(

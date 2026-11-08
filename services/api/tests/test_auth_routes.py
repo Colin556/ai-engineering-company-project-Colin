@@ -45,7 +45,7 @@ def test_every_endpoint_declares_its_response_contract() -> None:
         for method, operation in methods.items()
         if method in {"get", "post", "put", "patch", "delete", "head", "options"}
     ]
-    assert len(declarations) == len(operations) == 38
+    assert len(declarations) == len(operations) == 39
     for path, operation in operations:
         responses = operation["responses"]
         success = responses.get("200", responses.get("201", responses.get("204")))

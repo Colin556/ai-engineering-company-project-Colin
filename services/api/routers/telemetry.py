@@ -1,7 +1,9 @@
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
+from threading import Lock
+from time import monotonic
 from typing import Any, Literal
 from uuid import UUID
 
@@ -11,8 +13,11 @@ from jsonschema import Draft7Validator, FormatChecker
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from sqlmodel import Session, insert
 
+from accounts import get_current_user
 from database import engine, get_db
 from models import TelemetryEvent
+from schemas import UserResponse
+from telemetry import analysis
 
 TELEMETRY_ENDPOINT = os.getenv("TELEMETRY_ENDPOINT", "http://localhost:8000/telemetry/events")
 SCHEMA_VERSION = 1
@@ -20,6 +25,13 @@ registry_path = Path(__file__).resolve().parents[3] / "docs" / "event-schemas.js
 validator = Draft7Validator(json.loads(registry_path.read_text()), format_checker=FormatChecker())
 logger = logging.getLogger("uvicorn.error.telemetry")
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
+
+REPORT_TTL_SECONDS = 60
+REPORT_DEFAULT_DAYS = 7
+REPORT_MAX_DAYS = 92
+REPORT_CACHE_MAX_ENTRIES = 32
+_report_cache: dict[tuple[date, date], tuple[float, dict[str, Any]]] = {}
+_report_cache_lock = Lock()
 
 
 class TelemetryEventModel(BaseModel):
@@ -58,6 +70,62 @@ class TelemetryBatchResponse(BaseModel):
     received: int
     stored: int
     rejected: int
+
+
+class ReportPeriod(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    from_: datetime = Field(alias="from")
+    to: datetime = Field(description="Exclusive upper bound (UTC).")
+
+
+class EventsPerDay(BaseModel):
+    date: date
+    event_type: str
+    count: int
+
+
+class EventTypeShare(BaseModel):
+    event_type: str
+    count: int
+    active_days: int
+    share: float
+
+
+class ErrorRateByType(BaseModel):
+    date: date
+    error_code: str
+    failures: int
+    requests: int
+    error_rate: float
+
+
+class ApiLatencyByRoute(BaseModel):
+    date: date
+    route_id: str
+    sampled_requests: int
+    avg_ms: float
+    max_ms: float
+    slow_requests: int
+
+
+class AuthFailureRate(BaseModel):
+    date: date
+    attempts: int
+    failures: int
+    failure_rate: float
+
+
+class ReportMetrics(BaseModel):
+    events_per_day: list[EventsPerDay]
+    event_type_distribution: list[EventTypeShare]
+    error_rate_by_type: list[ErrorRateByType]
+    api_latency_by_route: list[ApiLatencyByRoute]
+    auth_failure_rate: list[AuthFailureRate]
+
+
+class TelemetryReport(BaseModel):
+    period: ReportPeriod
+    metrics: ReportMetrics
 
 
 @router.post("/events", response_model=TelemetryBatchResponse)
@@ -134,3 +202,47 @@ def receive_events(
         stored=stored_count,
         rejected=rejected_count,
     )
+
+
+def clear_report_cache() -> None:
+    with _report_cache_lock:
+        _report_cache.clear()
+
+
+@router.get("/report", response_model=TelemetryReport)
+def telemetry_report(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    _: UserResponse = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Operational metrics for the UTC days start_date..end_date (both inclusive; default last 7 days)."""
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Telemetry database is not configured.")
+    end_date = end_date or datetime.now(timezone.utc).date()
+    start_date = start_date or end_date - timedelta(days=REPORT_DEFAULT_DAYS - 1)
+    if start_date > end_date:
+        raise HTTPException(status_code=422, detail="start_date must be on or before end_date.")
+    if (end_date - start_date).days >= REPORT_MAX_DAYS:
+        raise HTTPException(status_code=422, detail=f"The report window is limited to {REPORT_MAX_DAYS} days.")
+
+    key = (start_date, end_date)
+    with _report_cache_lock:
+        cached = _report_cache.get(key)
+        if cached and cached[0] > monotonic():
+            return cached[1]
+
+    start = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+    end = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=timezone.utc)
+    report = {
+        "period": {"from": start.isoformat(), "to": end.isoformat()},
+        "metrics": analysis.build_metrics(engine, start, end),
+    }
+
+    with _report_cache_lock:
+        now = monotonic()
+        for expired in [k for k, (expires, _) in _report_cache.items() if expires <= now]:
+            del _report_cache[expired]
+        if len(_report_cache) >= REPORT_CACHE_MAX_ENTRIES:
+            del _report_cache[next(iter(_report_cache))]
+        _report_cache[key] = (now + REPORT_TTL_SECONDS, report)
+    return report

@@ -9,6 +9,7 @@ incidents.py
 main.py
 models.py
 pyproject.toml
+response_cache.py
 schemas.py
 seed_inventory.py
 suppliers.py
@@ -20,8 +21,12 @@ brasaland_api.egg-info/requires.txt
 brasaland_api.egg-info/top_level.txt
 routers/__init__.py
 routers/inventory.py
+routers/telemetry.py
+telemetry/__init__.py
+telemetry/analysis.py
 tests/test_auth.py
 tests/test_auth_routes.py
+tests/test_caching.py
 tests/test_incident_edge_cases.py
 tests/test_incident_seeder.py
 tests/test_incidents.py
@@ -29,3 +34,5 @@ tests/test_inventory.py
 tests/test_password.py
 tests/test_supplier_edge_cases.py
 tests/test_suppliers.py
+tests/test_telemetry.py
+tests/test_telemetry_report.py
