@@ -1,0 +1,18 @@
+The decisions you'll most want to review:
+
+No telemetry schema change is needed. inbound_order_created and stock_waste_registered already require unit_cost and total_cost.
+Business events currently pass through the browser. The order endpoints return event drafts, and the backoffice tab sends them to POST /telemetry/events. If the tab closes before sending, those events are lost. The design therefore checks the telemetry against the order tables (ingrediententry / ingredientexit) to tell real zero activity apart from lost events, and growth apart from data loss.
+Duplicates are blocked at two layers. event_id catches the same event sent twice. In the pipeline, a business key catches the same order sent under two different event ids: order_id for orders, and the request id plus location and product for stockout and price-alert events.
+Every run recomputes whole weeks, never adds increments. Each run rebuilds every week affected by newly arrived events and upserts on the briefing's unique (location_id, week_start). The load is one database transaction, which includes moving the progress checkpoint forward. A failed load leaves nothing behind, and a re-run gives the same result as a clean run.
+Late events keep an audit trail. When a published week changes, the old and new values go into a revisions table. Each location also gets a row with explicit zeros for every computed week, so a missing row always means "never computed".
+Location ids follow the codebase. They are the integers 1–14 used by the inventory code (1–10 Colombia/COP, 11–14 Florida/USD). Currencies are never mixed in one row.
+Concurrent runs are guarded at three levels: a Prefect limit of one run at a time, a 409 from the manual trigger when a run is active, and a database lock.
+Things I found in the current code that need your decision (§6 of the doc):
+
+The telemetry receiver has a duplicate bug that blocks idempotency. If one event in a batch was already stored, the whole batch fails with HTTP 500 instead of reporting "already stored". The proposed fix is to ignore events whose event_id already exists and report a duplicate count.
+Some costs never reach the KPIs. Inbound orders without a supplier and cost, and older waste records without a cause, emit no event at all. The business needs to decide whether cost becomes mandatory on those forms.
+location_id type mismatch. The briefing's table uses text (example "medellin-centro"), but the codebase uses integers 1–14 and has no location names anywhere. I proposed storing '1'–'14' for now and adding a locations table with names later.
+Week boundary. Weeks start Monday 00:00 UTC per the briefing, so Sunday activity after 19:00 Bogotá / 20:00 Florida (EDT) counts toward the next week. Felipe should confirm that's acceptable.
+Extra columns and fields. I proposed three audit columns on the briefing's table (source_event_count, revision, last_run_id) and a few extra fields on the KPI endpoint's response. Confirm these are acceptable.
+Moving business events to the server (later). Sending them from the API in the same transaction as the order, instead of from the browser tab, would remove the lost-event risk entirely.
+Where the new code would go: the reporting endpoints would sit in services/api/reporting/, in the same FastAPI app, because the API runs from api. The pipeline code would sit in data/pipelines/weekly_location_performance/. The API's Docker image currently copies only services, so it would also need to include pipelines.
