@@ -359,7 +359,43 @@ Guarantees:
 
 ## 4. Mapping to Prefect (Phase 4)
 
-Location: `data/pipelines/weekly_location_performance/` (Prefect 3).
+Location: `pipelines/data/` (Prefect 3). The ticket asked for `data/`, but that folder is blocked for tooling by the organisation content-exclusion policy, so the same layout lives under `pipelines/data/`:
+
+| Path | Purpose |
+|---|---|
+| `pipelines/data/pipelines/pipeline.py` | Main entry point: flow, tasks, retries, caching, CLI |
+| `pipelines/data/pipelines/store.py` | `reporting` tables, engine, run log, atomic load, KPI query (replaces the planned `queries.py` / `runs.py`) |
+| `pipelines/data/process/transform.py` | Pure transformation logic (`transform_events`) |
+| `pipelines/data/raw/` | Input and intermediate files (git-ignored) |
+| `pipelines/data/eval/` | Validation outputs, e.g. `run_<id>.json` (git-ignored) |
+
+**Run command** (from the repo root, with `DATABASE_URL` set or in `services/api/.env`):
+
+```
+python pipelines/data/pipelines/pipeline.py [--week-start YYYY-MM-DD] [--trigger scheduled|manual|backfill] [--triggered-by USER]
+python pipelines/data/pipelines/pipeline.py --serve    # long-running scheduler
+```
+
+**Schedule:** `--serve` creates a deployment with cron `0 9 * * *` UTC and a concurrency limit of 1.
+
+**Implemented tasks** (critical = failure stops the run; optional = called with `return_state=True`, failure is logged and the run continues):
+
+| Task | Kind | Retries |
+|---|---|---|
+| `start_run`, `record_run_failure` | critical | 3 (`[10,30,90]` s) |
+| `extract_events` | critical, cached 1 h | 3 (`[10,30,90]` s) |
+| `transform_weekly_rollup` | critical, cached 1 h | none (pure) |
+| `load_weekly_rollup` | critical | 2 (`[5,15]` s) |
+| `extract_order_controls` | optional | 3 (`[10,30,90]` s) |
+| `check_quality`, `write_eval_snapshot` | optional | none (local) |
+| `notify_run_result` | optional | 2 (`[5,15]` s) |
+
+**Deviations from the design below:**
+- No `backfill_weekly_location_performance_flow`; use `--week-start`.
+- No `on_failure` / `on_crashed` hooks: the flow records failures on the run row, and the next `start_run` marks stale runs `crashed`.
+- The manual trigger uses FastAPI `BackgroundTasks` plus a DB running-row check, not `run_deployment`.
+- No Prefect blocks yet: the connection comes from `DATABASE_URL`.
+- Extract cache key is `(weeks, watermark_to floored to the hour)`; the transform key is a hash of weeks + `(event_id, ingestion_timestamp)`.
 
 | Prefect concept | Name | Responsibility |
 |---|---|---|
@@ -397,15 +433,15 @@ Relevant states:
 
 ## 5. Application integration (Phase 5, design only)
 
-All three endpoints are authenticated with the existing `get_current_user`. They contain **no ETL logic**: each one delegates to a function in `data/pipelines/weekly_location_performance/`.
+All three endpoints are authenticated with the existing `get_current_user`. They contain **no ETL logic**: each one delegates to a function in `pipelines/data/pipelines/`.
 
-| Endpoint | Access | Calls (in `data/pipelines/weekly_location_performance/`) | Behaviour |
+| Endpoint | Access | Calls (in `pipelines/data/pipelines/store.py`) | Behaviour |
 |---|---|---|---|
-| `GET /reporting/weekly-location-performance?week_start=` | Any signed-in staff | `queries.fetch_week(week_start: date \| None)` | Reads `reporting.weekly_location_performance`. If `week_start` is omitted, uses the latest computed week. `week_start` must be a Monday (422 otherwise). Returns the briefing shape: `{"week_start", "locations": [{location_id, country, total_purchase_cost, total_waste_cost, waste_ratio, stockout_events_count, price_alert_events_count, currency}]}`. Proposed additive fields: `computed_at`, `last_run_status`, `data_quality` (`ok` / `warning`), so a non-technical reader knows when to trust the numbers. COP and USD rows are never summed. |
-| `GET /reporting/pipeline-runs/latest` | Any signed-in staff | `runs.get_latest_run(pipeline_name="weekly_location_performance")` | Returns the latest `pipeline_runs` row: status, timings, counts, weeks recomputed, quality verdict, and a sanitised error. |
-| `POST /reporting/pipeline-runs` | `admin` / `manager` roles (same rule as inventory controls) | `runs.trigger_run(trigger="manual", triggered_by=user.id, week_start=None)` → Prefect `run_deployment(..., timeout=0)` | Returns `202 {run_id, prefect_flow_run_id, status: "scheduled"}`, or `409 {active_run_id}` when a run is already `running`. Never runs the flow inside the request. |
+| `GET /reporting/weekly-location-performance?week_start=` | Any signed-in staff | `store.fetch_week(engine, week_start)` | Reads `reporting.weekly_location_performance`. If `week_start` is omitted, uses the latest computed week. `week_start` must be a Monday (422 otherwise). Returns the briefing shape: `{"week_start", "locations": [{location_id, country, total_purchase_cost, total_waste_cost, waste_ratio, stockout_events_count, price_alert_events_count, currency}]}`. Proposed additive fields: `computed_at`, `last_run_status`, `data_quality` (`ok` / `warning`), so a non-technical reader knows when to trust the numbers. COP and USD rows are never summed. |
+| `GET /reporting/pipeline-runs/latest` | Any signed-in staff | `store.get_latest_run(engine)` | Returns the latest `pipeline_runs` row: status, timings, counts, weeks recomputed, quality verdict, and a sanitised error. |
+| `POST /reporting/pipeline-runs` | `admin` / `manager` roles (same rule as inventory controls) | `pipeline.weekly_location_performance_flow(trigger="manual", triggered_by=user.id)` run through FastAPI `BackgroundTasks`; `store.get_active_run()` guards concurrency | Returns `202 {run_id, status: "scheduled"}`, or `409 {active_run_id}` when a run is already `running`. The flow runs after the response is sent, never inside the request. |
 
-Packaging note: the API image currently copies only `services/`. Integration requires copying `data/pipelines/` into the image (or installing it as a package) so `services/api/reporting/` can import `queries` / `runs`. No change is needed to `services/api/telemetry/` or `routers/telemetry.py`.
+Packaging note: the endpoints live in `services/api/reporting/router.py` and add `pipelines/data` to `sys.path` (env `PIPELINES_DATA_DIR`; default `<repo>/pipelines/data`). The Dockerfile copies `pipelines/data` to `/pipelines/data`. `services/api/telemetry/` and `routers/telemetry.py` are unchanged.
 
 ---
 

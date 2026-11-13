@@ -12,3 +12,9 @@ services/api/data/test_db.json
 .pytest_cache/
 .coverage
 coverage/
+
+# Pipeline run artifacts (kept local)
+pipelines/data/eval/*
+!pipelines/data/eval/.gitkeep
+pipelines/data/raw/*
+!pipelines/data/raw/.gitkeep

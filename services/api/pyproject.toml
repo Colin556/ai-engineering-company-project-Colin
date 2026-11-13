@@ -7,6 +7,7 @@ dependencies = [
     "jsonschema>=4.23",
     "libpass[bcrypt]>=1.9",
     "pandas>=2.2",
+    "prefect>=3",
     "psycopg2-binary>=2.9.13",
     "pydantic[email]>=2.10",
     "python-dotenv>=1.0",
@@ -50,4 +51,4 @@ py-modules = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["routers*", "telemetry*"]
+include = ["reporting*", "routers*", "telemetry*"]

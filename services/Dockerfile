@@ -7,5 +7,6 @@ COPY services/api/requirements.lock ./requirements.lock
 RUN uv pip install --system --no-cache -r requirements.txt -c requirements.lock
 COPY services /app
 COPY docs/event-schemas.json /docs/event-schemas.json
+COPY pipelines/data /pipelines/data
 EXPOSE 8000
 CMD ["sh", "/app/start.sh"]

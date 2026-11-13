@@ -34,6 +34,7 @@ from incident_analysis import (
 )
 from incidents import router as incidents_router
 from incidents import validation_message
+from reporting.router import router as reporting_router
 from routers.inventory import router as inventory_router
 from routers.telemetry import router as telemetry_router
 from schemas import IncidentAnalysisResponse, UserResponse
@@ -65,6 +66,7 @@ app.include_router(suppliers_router)
 app.include_router(incidents_router)
 app.include_router(inventory_router)
 app.include_router(telemetry_router)
+app.include_router(reporting_router)
 
 
 @app.middleware("http")
